@@ -11,7 +11,7 @@ function CreateDocumentPage({ query }) {
     const base = createEmptyDocument(typeCode, data.settings);
     const src = query.from ? data.documents.find((d) => d.id === query.from) : null;
     const camp = data.campaigns.find((c) => c.id === (query.campaign || (src && src.campaignId)));
-    const pre = data.publishers.find((p) => p.id === (query.publisher || (src && src.publisherId)) && p.status !== 'Inactive');
+    const pre = data.publishers.find((p) => p.id === (query.publisher || (src && src.publisherId)) && canBookPublisher(p));
     let start = { ...base, publisherId: pre ? pre.id : '' };
     if (src) {
       start = {

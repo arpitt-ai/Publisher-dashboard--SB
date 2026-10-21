@@ -41,7 +41,7 @@ const publisherService = (() => {
     async list() { return read(); },
     async get(id) { return read().find((p) => p.id === id) || null; },
     /** Publishers that may be picked for new documents (Inactive ones are excluded). */
-    async listActive() { return read().filter((p) => p.status !== 'Inactive'); },
+    async listActive() { return read().filter(canBookPublisher); },
     newId: () => uid('pub_'),
 
     async create(input) {
@@ -103,6 +103,61 @@ const publisherService = (() => {
       if (wentActive) await auditService.log({ action: 'PUBLISHER_REACTIVATED', entityType: 'publisher', entityId: id, entityLabel: after.publisherName, summary: `Reactivated ${after.publisherName}`, changes: changes.filter((c) => c.field === 'status'), isDemo: after.isDemo });
       await commitComplianceChanges(before.complianceDocuments, after.complianceDocuments, after);
       return after;
+    },
+
+    /** Blacklist: the publisher stays on record but can never be picked for a new document until it is removed from the blacklist. */
+    async blacklist(id, reason) {
+      assertCan('publisher.blacklist', 'blacklist publishers');
+      if (!norm(reason)) throw new Error('Please give a reason for blacklisting.');
+      const list = read();
+      const idx = list.findIndex((p) => p.id === id);
+      if (idx < 0) throw new Error('Publisher not found');
+      const before = list[idx];
+      if (before.status === 'Blacklisted') return before;
+      const after = {
+        ...before, status: 'Blacklisted',
+        blacklist: { reason: norm(reason), by: currentUser.actor(), at: nowISO(), previousStatus: before.status },
+        updatedAt: nowISO(), updatedBy: currentUser.actor(),
+      };
+      list[idx] = after;
+      write(list);
+      await auditService.log({ action: 'PUBLISHER_BLACKLISTED', entityType: 'publisher', entityId: id, entityLabel: after.publisherName, summary: `Blacklisted ${after.publisherName}`, detail: norm(reason), isDemo: after.isDemo });
+      return after;
+    },
+
+    async removeFromBlacklist(id) {
+      assertCan('publisher.blacklist', 'remove publishers from the blacklist');
+      const list = read();
+      const idx = list.findIndex((p) => p.id === id);
+      if (idx < 0) throw new Error('Publisher not found');
+      const before = list[idx];
+      if (before.status !== 'Blacklisted') return before;
+      const back = before.blacklist && PUBLISHER_STATUSES.includes(before.blacklist.previousStatus) && before.blacklist.previousStatus !== 'Blacklisted' ? before.blacklist.previousStatus : 'Active';
+      const after = { ...before, status: back, blacklist: null, updatedAt: nowISO(), updatedBy: currentUser.actor() };
+      list[idx] = after;
+      write(list);
+      await auditService.log({ action: 'PUBLISHER_UNBLACKLISTED', entityType: 'publisher', entityId: id, entityLabel: after.publisherName, summary: `Removed ${after.publisherName} from the blacklist`, detail: `Now ${back}`, isDemo: after.isDemo });
+      return after;
+    },
+
+    /** Permanently deletes the publisher and its uploaded files. Documents already created keep the details they were issued with. */
+    async remove(id) {
+      assertCan('publisher.delete', 'delete publishers');
+      const list = read();
+      const pub = list.find((p) => p.id === id);
+      if (!pub) throw new Error('Publisher not found');
+      const documents = storageService.get(COLLECTIONS.documents, []).filter((d) => d.publisherId === id).length;
+      write(list.filter((p) => p.id !== id));
+      const camps = storageService.get(COLLECTIONS.campaigns, []);
+      if (camps.some((c) => (c.publisherIds || []).includes(id))) {
+        storageService.set(COLLECTIONS.campaigns, camps.map((c) => ({ ...c, publisherIds: (c.publisherIds || []).filter((x) => x !== id) })));
+      }
+      await fileService.deleteMany((pub.complianceDocuments || []).map((d) => d.fileId));
+      await auditService.log({
+        action: 'PUBLISHER_DELETED', entityType: 'publisher', entityId: id, entityLabel: pub.publisherName, summary: `Deleted ${pub.publisherName}`,
+        detail: documents ? `${plural(documents, 'document')} keep their saved details` : '', isDemo: pub.isDemo,
+      });
+      return { documents };
     },
 
     async deactivate(id) {

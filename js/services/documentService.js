@@ -35,6 +35,7 @@ const documentService = (() => {
   async function requireUsablePublisher(publisherId) {
     const pub = await publisherService.get(publisherId);
     if (!pub) throw new Error('Publisher not found.');
+    if (pub.status === 'Blacklisted') throw new Error(`${pub.publisherName} is blacklisted and cannot be used for new documents.`);
     if (pub.status === 'Inactive') throw new Error(`${pub.publisherName} is inactive. Reactivate the publisher to create documents.`);
     return pub;
   }

@@ -27,6 +27,7 @@ function createEmptyPublisher() {
     commercial: { pricingModel: '', agreedRate: '', rateNotes: '', paymentTerms: '', gstPercent: '', taxTreatment: 'auto' },
     banking: { bankName: '', accountName: '', accountNumber: '', ifsc: '', branch: '' },
     complianceDocuments: [],
+    blacklist: null, // { reason, by, at, previousStatus } while the publisher is blacklisted
     status: 'Active',
   };
 }

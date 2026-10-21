@@ -51,8 +51,8 @@ function ConfirmHost() {
     setBusy(false);
   };
   return html`<${Modal} title=${req.title || 'Are you sure?'} width=${440} onClose=${() => close(false)}
-    footer=${html`<button type="button" className="btn btn-secondary" onClick=${() => close(false)}>${req.cancelLabel || 'Cancel'}</button>
-      <button type="button" className=${'btn ' + (req.danger ? 'btn-danger' : 'btn-primary')} disabled=${busy} autoFocus onClick=${() => { setBusy(true); close(true); }}>${req.confirmLabel || 'Confirm'}</button>`}>
+    footer=${html`<button type="button" className="btn btn-secondary" autoFocus=${!!req.danger} onClick=${() => close(false)}>${req.cancelLabel || 'Cancel'}</button>
+      <button type="button" className=${'btn ' + (req.danger ? 'btn-danger' : 'btn-primary')} disabled=${busy} autoFocus=${!req.danger} onClick=${() => { setBusy(true); close(true); }}>${req.confirmLabel || 'Confirm'}</button>`}>
     <p className="modal-text">${req.message}</p>
   <//>`;
 }

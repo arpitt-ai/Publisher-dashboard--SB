@@ -676,3 +676,6 @@ img { max-width: 100%; }
 .sidebar-brand .brand-name small { margin-top: 0; font-size: 11px; }
 .paper-logo { height: 46px; width: auto; max-width: 150px; object-fit: contain; }
 .paper-brand span { font-size: 13px; font-weight: 600; color: #475569; }
+/* Danger notice (blacklisted publisher) */
+.notice-danger { background: var(--danger-soft); border-color: var(--danger-border); color: var(--danger); }
+.menu-item.is-danger { font-weight: 600; }

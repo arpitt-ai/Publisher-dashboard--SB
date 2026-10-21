@@ -18,6 +18,8 @@ const ROLE_HELP = {
 
 const PERMISSIONS = {
   'publisher.edit': ['Admin', 'Media Operations'],
+  'publisher.blacklist': ['Admin', 'Media Operations'],
+  'publisher.delete': ['Admin'],
   'bank.edit': ['Admin', 'Media Operations', 'Finance'],
   'bank.view': ['Admin', 'Finance'],
   'campaign.edit': ['Admin', 'Media Operations'],

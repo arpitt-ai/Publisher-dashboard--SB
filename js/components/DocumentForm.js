@@ -134,7 +134,7 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
 
   const typeCode = doc.documentType;
   const type = DOCUMENT_TYPES[typeCode];
-  const selectable = useMemo(() => publishers.filter((p) => p.status !== 'Inactive'), [publishers]);
+  const selectable = useMemo(() => publishers.filter(canBookPublisher), [publishers]);
   const pub = publishers.find((p) => p.id === doc.publisherId) || (justAdded && justAdded.id === doc.publisherId ? justAdded : null);
   const ctx = taxCtxFor(pub);
   const model = PRICING_BY_CODE[doc.commercial.pricingModel];

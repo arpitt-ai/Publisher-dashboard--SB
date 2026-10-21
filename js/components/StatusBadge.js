@@ -1,7 +1,7 @@
 /* Subtle status badges: neutral chip + one small colour dot. The same word always has the same colour. */
 const STATUS_TONES = {
   // publishers
-  Active: 'green', Inactive: 'gray', 'Pending Verification': 'amber',
+  Active: 'green', Inactive: 'gray', Blacklisted: 'red', 'Pending Verification': 'amber',
   // documents
   Draft: 'gray', 'Pending Approval': 'amber', Approved: 'green', Sent: 'blue', Acknowledged: 'indigo',
   Completed: 'green', Rejected: 'red', Cancelled: 'red', Archived: 'gray',

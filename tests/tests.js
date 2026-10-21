@@ -387,6 +387,49 @@ test('Publishers › editing a publisher does not flag itself as a duplicate', a
   const p = await newPub({ tax: { gstin: OTHER_STATE_GSTIN, pan: '', cin: '', tan: '' } });
   assert.equal((await publisherService.findDuplicates(p, p.id)).length, 0);
 });
+test('Publishers › blacklisting needs a reason, blocks new documents, and can be undone', async () => {
+  const p = await newPub();
+  await assert.rejects(publisherService.blacklist(p.id, '  '), /reason/);
+  const b = await publisherService.blacklist(p.id, 'Repeated delivery shortfalls');
+  assert.equal(b.status, 'Blacklisted'); assert.equal(b.blacklist.reason, 'Repeated delivery shortfalls'); assert.equal(b.blacklist.previousStatus, 'Active');
+  await assert.rejects(documentService.create(docInput(p.id)), /blacklisted/);
+  assert.ok(!(await publisherService.listActive()).some((x) => x.id === p.id));
+  assert.ok(!canBookPublisher(b));
+  const back = await publisherService.removeFromBlacklist(p.id);
+  assert.equal(back.status, 'Active'); assert.equal(back.blacklist, null);
+  assert.ok((await documentService.create(docInput(p.id))).id);
+  assert.deepEqual((await auditService.list()).map((a) => a.action).filter((a) => /BLACKLIST/.test(a)).sort(), ['PUBLISHER_BLACKLISTED', 'PUBLISHER_UNBLACKLISTED']);
+});
+test('Publishers › removing the blacklist restores the status it had before', async () => {
+  const p = await newPub({ status: 'Pending Verification' });
+  await publisherService.blacklist(p.id, 'Under review');
+  assert.equal((await publisherService.removeFromBlacklist(p.id)).status, 'Pending Verification');
+});
+test('Publishers › deleting removes the publisher but documents already issued keep their details', async () => {
+  const p = await newPub(); const other = await newPub({ publisherName: 'Beta', legalEntityName: 'Beta Ltd', email: 'b@b.com' });
+  const c = await campaignService.create({ name: 'Camp', client: 'Acme' }); await campaignService.addPublisher(c.id, p.id); await campaignService.addPublisher(c.id, other.id);
+  const d = await documentService.create(docInput(p.id));
+  const r = await publisherService.remove(p.id);
+  assert.equal(r.documents, 1);
+  assert.equal(await publisherService.get(p.id), null); assert.ok(await publisherService.get(other.id));
+  const kept = await documentService.get(d.id);
+  assert.equal(kept.publisherSnapshot.publisherName, 'Alpha'); assert.equal(kept.documentNumber, d.documentNumber);
+  assert.deepEqual((await campaignService.get(c.id)).publisherIds, [other.id]); // gone from the campaign too
+  assert.ok((await auditService.list()).some((a) => a.action === 'PUBLISHER_DELETED' && a.detail.includes('1 document')));
+  await assert.rejects(publisherService.remove(p.id), /not found/);
+});
+test('Permissions › only Admin may delete a publisher; Admin and Media Operations may blacklist', async () => {
+  assert.deepEqual(ROLES.filter((r) => can('publisher.delete', r)), ['Admin']);
+  assert.deepEqual(ROLES.filter((r) => can('publisher.blacklist', r)), ['Admin', 'Media Operations']);
+  const p = await newPub();
+  asRole('Media Operations');
+  await assert.rejects(publisherService.remove(p.id), /cannot/);
+  assert.equal((await publisherService.blacklist(p.id, 'Test')).status, 'Blacklisted');
+  asRole('Finance');
+  await assert.rejects(publisherService.blacklist(p.id, 'x'), /cannot/);
+  asRole('Read Only');
+  await assert.rejects(publisherService.removeFromBlacklist(p.id), /cannot/);
+});
 test('Publishers › older records without the new fields still load', async () => {
   storageService.set(COLLECTIONS.publishers, [{ id: 'old', publisherName: 'Old', legalEntityName: 'Old Ltd', contactPerson: 'X', email: 'x@o.com', phone: '1', address: { line1: 'a' }, tax: { gstin: '' }, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' }]);
   const p = await publisherService.get('old');

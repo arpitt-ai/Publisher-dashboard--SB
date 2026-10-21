@@ -108,7 +108,7 @@ function CampaignForm({ mode, initial, publishers, onSaved, onCancel }) {
     onCancel();
   }
 
-  const available = publishers.filter((p) => p.status !== 'Inactive' && !form.publisherIds.includes(p.id));
+  const available = publishers.filter((p) => canBookPublisher(p) && !form.publisherIds.includes(p.id));
 
   return html`<form className="publisher-form" noValidate onSubmit=${submit}>
     <p className="form-note"><span className="req">*</span> means required.</p>

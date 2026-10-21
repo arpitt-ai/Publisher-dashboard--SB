@@ -14,7 +14,9 @@ const COMPANY_TYPES = [
   'Government / PSU', 'Trust / Society', 'Other',
 ];
 
-const PUBLISHER_STATUSES = ['Active', 'Inactive', 'Pending Verification'];
+const PUBLISHER_STATUSES = ['Active', 'Inactive', 'Pending Verification', 'Blacklisted'];
+/* Publishers in these statuses are not offered when creating new documents. */
+const canBookPublisher = (p) => !!p && p.status !== 'Inactive' && p.status !== 'Blacklisted';
 
 /* Document lifecycle. The allowed moves between these live in utils/workflow.js. */
 const DOCUMENT_STATUSES = ['Draft', 'Pending Approval', 'Approved', 'Sent', 'Acknowledged', 'Completed', 'Rejected', 'Cancelled'];
@@ -115,6 +117,9 @@ const AUDIT_ACTIONS = {
   PUBLISHER_UPDATED: { label: 'Publisher updated', entity: 'publisher' },
   PUBLISHER_DEACTIVATED: { label: 'Publisher deactivated', entity: 'publisher' },
   PUBLISHER_REACTIVATED: { label: 'Publisher reactivated', entity: 'publisher' },
+  PUBLISHER_BLACKLISTED: { label: 'Publisher blacklisted', entity: 'publisher' },
+  PUBLISHER_UNBLACKLISTED: { label: 'Publisher removed from blacklist', entity: 'publisher' },
+  PUBLISHER_DELETED: { label: 'Publisher deleted', entity: 'publisher' },
   DOCUMENT_CREATED: { label: 'Document created', entity: 'document' },
   DOCUMENT_UPDATED: { label: 'Document updated', entity: 'document' },
   DOCUMENT_DUPLICATED: { label: 'Document duplicated', entity: 'document' },

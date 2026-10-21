@@ -36,7 +36,8 @@ function PublisherProfilePage({ params, query }) {
       action=${html`<${Link} to="/publishers" className="btn btn-primary">Back to Publishers</${Link}>`} /></section></div>`;
   }
 
-  const inactive = pub.status === 'Inactive';
+  const inactive = !canBookPublisher(pub); // inactive or blacklisted: cannot be used for new documents
+  const blacklisted = pub.status === 'Blacklisted';
   const canEdit = can('publisher.edit');
   const liveDocs = docs.filter((d) => !d.archived).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   const gaps = publisherGaps(pub);
@@ -136,16 +137,18 @@ function PublisherProfilePage({ params, query }) {
       <div className="btn-row">
         ${canEdit && html`<${Link} to=${`/publishers/${pub.id}/edit`} className="btn btn-secondary"><${Icon} name="edit" size=${15} /> Edit</${Link}>`}
         ${can('document.create') && (inactive
-          ? html`<button className="btn btn-primary" disabled title="Inactive publishers cannot be used for new documents"><${Icon} name="filePlus" size=${15} /> Create RO</button>`
+          ? html`<button className="btn btn-primary" disabled title=${blacklisted ? 'Blacklisted publishers cannot be used for new documents' : 'Inactive publishers cannot be used for new documents'}><${Icon} name="filePlus" size=${15} /> Create RO</button>`
           : html`<${Link} to=${`/documents/new?type=RO&publisher=${pub.id}`} className="btn btn-primary"><${Icon} name="filePlus" size=${15} /> Create RO</${Link}>`)}
         <${MenuButton} items=${[
           { label: 'Create PO / IO', icon: 'filePlus', to: `/documents/new?type=PO&publisher=${pub.id}`, hidden: !can('document.create'), disabled: inactive },
-          { label: inactive ? 'Reactivate publisher' : 'Deactivate publisher', icon: inactive ? 'power' : 'ban', danger: !inactive, hidden: !canEdit, onClick: () => togglePublisherStatus(pub) },
+          { label: pub.status === 'Inactive' ? 'Reactivate publisher' : 'Deactivate publisher', icon: pub.status === 'Inactive' ? 'power' : 'ban', hidden: !canEdit || blacklisted, onClick: () => togglePublisherStatus(pub) },
+          ...publisherDangerItems(pub, { onDeleted: () => navigate('/publishers') }),
         ]} />
       </div>
     </section>
 
-    ${inactive && html`<div className="notice notice-warn"><${Icon} name="alert" size=${16} /><div>This publisher is inactive. It is hidden when creating new documents; existing documents are unchanged.</div></div>`}
+    ${blacklisted && html`<div className="notice notice-danger"><${Icon} name="ban" size=${16} /><div><strong>This publisher is blacklisted.</strong> It cannot be chosen for new documents; existing documents are unchanged.${pub.blacklist ? html` <strong>Reason:</strong> ${pub.blacklist.reason} (${actorName(pub.blacklist.by)}, ${fmtDate(pub.blacklist.at)}).` : ''}</div></div>`}
+    ${inactive && !blacklisted && html`<div className="notice notice-warn"><${Icon} name="alert" size=${16} /><div>This publisher is inactive. It is hidden when creating new documents; existing documents are unchanged.</div></div>`}
     ${!inactive && gaps.length > 0 && html`<div className="notice notice-info"><${Icon} name="info" size=${16} /><div>Still missing for printing documents: <strong>${gaps.join(' and ')}</strong>. ${canEdit && html`<${Link} to=${`/publishers/${pub.id}/edit?tab=${gaps.includes('GSTIN') ? 'basic' : 'address'}`} className="text-link">Add now</${Link}>`}</div></div>`}
 
     <${Tabs} label="Publisher sections" tabs=${tabs} active=${tab} onChange=${setTab} />
