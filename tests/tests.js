@@ -192,9 +192,10 @@ test('Numbering › a duplicate gets its own new number', async () => {
 });
 
 /* ═══ Validation ═══ */
-test('Validation › a publisher needs only four things', () => {
-  assert.deepEqual(Object.keys(validatePublisher(createEmptyPublisher())).sort(), ['contactPerson', 'email', 'legalEntityName', 'publisherName']);
-  assert.deepEqual(validatePublisher({ ...createEmptyPublisher(), publisherName: 'A', legalEntityName: 'A Ltd', contactPerson: 'B', email: 'b@a.com' }), {});
+test('Validation › editing a publisher needs only its two names', () => {
+  assert.deepEqual(Object.keys(validatePublisher(createEmptyPublisher())).sort(), ['legalEntityName', 'publisherName']);
+  assert.deepEqual(validatePublisher({ ...createEmptyPublisher(), publisherName: 'A', legalEntityName: 'A Ltd' }), {}); // contact details are optional
+  assert.ok(validatePublisher({ ...createEmptyPublisher(), publisherName: 'A', legalEntityName: 'A Ltd', email: 'nope' }).email); // but checked when given
 });
 test('Validation › publisher identifiers are checked when entered', () => {
   const base = { ...createEmptyPublisher(), publisherName: 'A', legalEntityName: 'A', contactPerson: 'B', email: 'b@a.com' };
@@ -203,14 +204,58 @@ test('Validation › publisher identifiers are checked when entered', () => {
   const good = validatePublisher({ ...base, phone: '+91 98765 43210', tax: { gstin: OTHER_STATE_GSTIN, pan: 'AAACC1206D', cin: '', tan: '' }, address: { ...base.address, pinCode: '400013' }, banking: { ...base.banking, ifsc: 'hdfc0001234', accountNumber: '123456789012' } });
   assert.deepEqual(good, {});
 });
-test('Validation › MSME needs its Udyam number', () => {
-  const base = { ...createEmptyPublisher(), publisherName: 'A', legalEntityName: 'A', contactPerson: 'B', email: 'b@a.com' };
-  assert.ok(validatePublisher({ ...base, msme: { registered: true, registrationNumber: '' } })['msme.registrationNumber']);
-  assert.equal(validatePublisher({ ...base, msme: { registered: true, registrationNumber: 'UDYAM-MH-18-0012345' } })['msme.registrationNumber'], undefined);
+const MSME_DOC = { type: 'MSME', fileId: 'f1', fileName: 'msme.pdf' };
+test('Validation › the MSME number is optional, but with a number the certificate is compulsory', () => {
+  const base = { ...createEmptyPublisher(), publisherName: 'A', legalEntityName: 'A' };
+  assert.deepEqual(validatePublisher(base), {}); // no number, nothing needed
+  const noDoc = validatePublisher({ ...base, msme: { registered: true, registrationNumber: 'UDYAM-MH-18-0012345' } });
+  assert.equal(noDoc['msme.document'], 'Please upload the MSME certificate. It is required when an MSME number is entered');
+  assert.equal(noDoc['msme.registrationNumber'], undefined);
+  assert.deepEqual(validatePublisher({ ...base, msme: { registered: true, registrationNumber: 'UDYAM-MH-18-0012345' }, complianceDocuments: [MSME_DOC] }), {});
+  assert.ok(validatePublisher({ ...base, msme: { registered: true, registrationNumber: 'BAD' }, complianceDocuments: [MSME_DOC] })['msme.registrationNumber']);
+  assert.ok(validatePublisher({ ...base, msme: { registered: true, registrationNumber: 'UDYAM-MH-18-0012345' }, complianceDocuments: [{ type: 'GST', fileId: 'x' }] })['msme.document']); // another file type does not count
 });
-test('Validation › error messages are plain language', () => {
-  const e = validatePublisher(createEmptyPublisher());
-  assert.equal(e.publisherName, 'Please enter the publisher name'); assert.equal(e.email, 'Please enter an email address');
+const addForm = (over = {}) => ({
+  ...createEmptyPublisher(), legalEntityName: 'Alpha Media Pvt Ltd',
+  address: { line1: '12 MG Road', line2: '', city: 'Mumbai', state: 'Maharashtra', pinCode: '400001', country: 'India' },
+  tax: { gstin: OTHER_STATE_GSTIN, pan: '', cin: '', tan: '' }, ...over,
+});
+test('Add Publisher › asks for the vendor name, address, city, pincode, state and GST number, and nothing else', () => {
+  assert.deepEqual(validateNewPublisher(addForm()), {});
+  assert.deepEqual(Object.keys(validateNewPublisher(createEmptyPublisher())).sort(), ['address.city', 'address.line1', 'address.pinCode', 'address.state', 'legalEntityName', 'tax.gstin']);
+});
+test('Add Publisher › every field is checked in plain language', () => {
+  const e = validateNewPublisher(addForm({ address: { line1: '', city: '', state: '', pinCode: '12345', country: 'India' }, tax: { gstin: 'ABC', pan: '', cin: '', tan: '' } }));
+  assert.equal(e['address.pinCode'], 'The pincode must be 6 digits'); assert.ok(e['tax.gstin'].startsWith('This GST number does not look right'));
+  assert.equal(e['address.line1'], 'Please enter the vendor address'); assert.equal(e['address.state'], 'Please choose the state');
+});
+test('Add Publisher › the MSME number is optional, and its certificate compulsory once entered', () => {
+  assert.deepEqual(validateNewPublisher(addForm()), {});
+  assert.deepEqual(Object.keys(validateNewPublisher(addForm({ msme: { registered: true, registrationNumber: 'UDYAM-MH-18-0012345' } }))), ['msme.document']);
+  assert.deepEqual(validateNewPublisher(addForm({ msme: { registered: true, registrationNumber: 'UDYAM-MH-18-0012345' }, complianceDocuments: [MSME_DOC] })), {});
+});
+test('Add Publisher › saves a complete publisher: the vendor name becomes the publisher name and the PAN comes from the GST number', async () => {
+  const res = await checkNewPublisher(addForm());
+  assert.ok(res.data);
+  const p = await publisherService.create(res.data);
+  assert.equal(p.publisherName, 'Alpha Media Pvt Ltd'); assert.equal(p.legalEntityName, 'Alpha Media Pvt Ltd');
+  assert.equal(p.tax.pan, 'AAACC1206D'); assert.equal(p.tax.gstin, OTHER_STATE_GSTIN); assert.equal(p.address.state, 'Maharashtra'); assert.equal(p.status, 'Active');
+  assert.equal(p.msme.registered, false);
+});
+test('Add Publisher › an MSME publisher is saved with its certificate and counts as registered', async () => {
+  const res = await checkNewPublisher(addForm({ msme: { registered: false, registrationNumber: 'udyam-mh-18-0012345' }, complianceDocuments: [MSME_DOC] }));
+  const p = await publisherService.create(res.data);
+  assert.equal(p.msme.registered, true); assert.equal(p.msme.registrationNumber, 'UDYAM-MH-18-0012345'); assert.equal(p.complianceDocuments.length, 1);
+});
+test('Add Publisher › warns about an existing publisher with the same GST number, and lets you continue', async () => {
+  await publisherService.create((await checkNewPublisher(addForm())).data);
+  const again = await checkNewPublisher(addForm());
+  assert.ok(again.dupes && again.dupes[0].reasons.includes('Same GSTIN'));
+  assert.ok((await checkNewPublisher(addForm(), { force: true })).data);
+});
+test('Add Publisher › nothing is saved when a field is missing', async () => {
+  const res = await checkNewPublisher(addForm({ legalEntityName: '' }));
+  assert.ok(res.errors.legalEntityName); assert.equal((await publisherService.list()).length, 0);
 });
 test('Validation › a complete order is valid', () => { assert.deepEqual(validateDocument(validForm(), { full: true }), {}); });
 test('Validation › a draft only needs a client, a campaign and a publisher', () => {

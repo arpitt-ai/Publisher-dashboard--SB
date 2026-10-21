@@ -30,17 +30,16 @@ const isNumeric = (v) => v !== '' && v != null && Number.isFinite(Number(String(
 const MAX_QUANTITY = 1e12;
 const MAX_AMOUNT = 1e11;
 
-/* Only four things are needed to add a publisher. Everything else is checked only when it is filled in. */
+/* Editing a publisher: only the two names are required. Everything else is checked only when it is filled in.
+   (The Add Publisher form asks for more: see validateNewPublisher.) */
 function validatePublisher(p) {
   const e = {};
   const req = (path, label, value) => { if (!norm(value)) e[path] = `Please enter ${label}`; };
 
   req('publisherName', 'the publisher name', p.publisherName);
   req('legalEntityName', 'the legal company name', p.legalEntityName);
-  req('contactPerson', 'a contact person', p.contactPerson);
 
-  if (!norm(p.email)) e.email = 'Please enter an email address';
-  else if (!RX.email.test(norm(p.email))) e.email = 'This email address does not look right. Example: name@company.com';
+  if (norm(p.email) && !RX.email.test(norm(p.email))) e.email = 'This email address does not look right. Example: name@company.com';
 
   if (norm(p.phone) && !isValidPhone(p.phone)) e.phone = 'Enter a phone number with 10 to 13 digits';
   if (norm(p.alternatePhone) && !isValidPhone(p.alternatePhone)) e.alternatePhone = 'Enter a phone number with 10 to 13 digits';
@@ -64,9 +63,7 @@ function validatePublisher(p) {
   if (norm(t.cin) && !RX.cin.test(upper(t.cin))) e['tax.cin'] = 'This CIN does not look right. It has 21 characters';
   if (norm(t.tan) && !RX.tan.test(upper(t.tan))) e['tax.tan'] = 'This TAN does not look right. Example: BLRA12345B';
 
-  const m = p.msme || {};
-  if (m.registered && !norm(m.registrationNumber)) e['msme.registrationNumber'] = 'Please enter the Udyam number for an MSME-registered publisher';
-  else if (norm(m.registrationNumber) && !RX.udyam.test(upper(m.registrationNumber))) e['msme.registrationNumber'] = 'Use the format UDYAM-XX-00-0000000';
+  Object.assign(e, validateMsme(p));
 
   const c = p.commercial || {};
   if (norm(c.agreedRate) && (!isNumeric(c.agreedRate) || toNum(c.agreedRate) < 0)) e['commercial.agreedRate'] = 'Enter a rate of 0 or more';
@@ -77,6 +74,32 @@ function validatePublisher(p) {
   if (norm(b.accountNumber) && !RX.account.test(norm(b.accountNumber))) e['banking.accountNumber'] = 'Account number must be 9 to 18 digits';
 
   return e;
+}
+
+/* The MSME number is optional, but once one is entered the MSME certificate must be uploaded too. */
+function validateMsme(p) {
+  const e = {};
+  const number = norm(p.msme?.registrationNumber);
+  if (!number) return e;
+  if (!RX.udyam.test(upper(number))) e['msme.registrationNumber'] = 'Use the format UDYAM-XX-00-0000000';
+  if (!(p.complianceDocuments || []).some((d) => d.type === 'MSME')) e['msme.document'] = 'Please upload the MSME certificate. It is required when an MSME number is entered';
+  return e;
+}
+
+/** The Add Publisher form. Everything on it is required except the MSME number (see validateMsme). */
+function validateNewPublisher(p) {
+  const e = {};
+  const a = p.address || {};
+  const t = p.tax || {};
+  if (!norm(p.legalEntityName)) e.legalEntityName = 'Please enter the vendor name exactly as it appears on the GST certificate';
+  if (!norm(a.line1)) e['address.line1'] = 'Please enter the vendor address';
+  if (!norm(a.city)) e['address.city'] = 'Please enter the city';
+  if (!norm(a.pinCode)) e['address.pinCode'] = 'Please enter the pincode';
+  else if (!RX.pin.test(norm(a.pinCode))) e['address.pinCode'] = 'The pincode must be 6 digits';
+  if (!norm(a.state)) e['address.state'] = 'Please choose the state';
+  if (!norm(t.gstin)) e['tax.gstin'] = 'Please enter the GST registration number';
+  else if (!RX.gstin.test(upper(t.gstin))) e['tax.gstin'] = 'This GST number does not look right. It has 15 characters, e.g. 27AAACC1206D1ZM';
+  return { ...e, ...validateMsme(p) };
 }
 
 /** What a publisher record is still missing for printing a proper document (a gentle reminder, not an error). */
@@ -199,7 +222,7 @@ function normalizePublisher(p) {
     address: addr(p.address),
     billingAddress: { sameAsRegistered: p.billingAddress?.sameAsRegistered !== false, ...addr(p.billingAddress) },
     tax: { gstin: upper(p.tax.gstin), pan: upper(p.tax.pan), cin: upper(p.tax.cin), tan: upper(p.tax.tan) },
-    msme: { registered: !!p.msme.registered, registrationNumber: upper(p.msme.registrationNumber) },
+    msme: { registered: !!upper(p.msme.registrationNumber), registrationNumber: upper(p.msme.registrationNumber) }, // registered = has a number
     commercial: {
       pricingModel: s(p.commercial?.pricingModel), agreedRate: s(p.commercial?.agreedRate), rateNotes: s(p.commercial?.rateNotes),
       paymentTerms: s(p.commercial?.paymentTerms), gstPercent: s(p.commercial?.gstPercent), taxTreatment: s(p.commercial?.taxTreatment) || 'auto',

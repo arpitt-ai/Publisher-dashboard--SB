@@ -1,36 +1,30 @@
-/* Add a publisher without leaving the order you are creating. A small window asks only for the essentials;
-   the rest can be filled in later from the Publishers screen. */
+/* Add a publisher without leaving the order you are creating. It asks for the same vendor details as the
+   Add Publisher page (see PublisherAdd.js); everything else can be added later from the Publishers screen. */
 function QuickAddPublisherModal({ initialName = '', onCreated, onClose }) {
-  const [form, setForm] = useState({ ...createEmptyPublisher(), publisherName: initialName, legalEntityName: initialName });
-  const [errors, setErrors] = useState({});
+  const d = useDraft({ ...createEmptyPublisher(), legalEntityName: initialName }, validateNewPublisher);
   const [dupes, setDupes] = useState(null);
   const [saving, setSaving] = useState(false);
+  const uploads = useRef(new Set());
+  const done = useRef(false);
+  const formRef = useRef(d.form);
+  formRef.current = d.form;
 
-  const set = (path, value) => {
-    setForm((f) => setPath(f, path, value));
-    setErrors((e) => { if (!e[path]) return e; const n = { ...e }; delete n[path]; return n; });
-    setDupes(null);
-  };
-  const field = (path, extra = {}) => ({ value: getPath(form, path), error: errors[path], name: path, onChange: (v) => set(path, v), ...extra });
+  useEffect(() => () => { if (!done.current) fileService.deleteMany([...uploads.current]); }, []);
 
   async function save(force = false) {
-    const errs = validatePublisher(form);
-    setErrors(errs);
-    if (Object.keys(errs).length) return;
-    const gstin = upper(form.tax.gstin);
-    const data = { ...form, tax: { ...form.tax, pan: form.tax.pan || (RX.gstin.test(gstin) ? gstin.slice(2, 12) : '') } }; // a GSTIN contains the PAN
-    if (!force) {
-      const found = await publisherService.findDuplicates(data);
-      if (found.length) { setDupes(found); return; }
-    }
+    const res = await checkNewPublisher(formRef.current, { force });
+    if (res.errors) { d.setErrors(res.errors); scrollToFirstError(); return; }
+    if (res.dupes) { setDupes(res.dupes); return; }
     setSaving(true);
-    const { ok, result } = await runAction({ loading: 'Adding publisher...', success: 'Publisher added.' }, () => publisherService.create(data));
+    const { ok, result } = await runAction({ loading: 'Adding publisher...', success: 'Publisher added.' }, () => publisherService.create(res.data));
     setSaving(false);
-    if (ok) onCreated(result);
+    if (!ok) return;
+    done.current = true;
+    onCreated(result);
   }
 
-  return html`<${Modal} title="Add a new publisher" width=${600} onClose=${onClose}
-    subtitle="Just the essentials. Your order stays exactly as it is. You can add GST, bank and address details later."
+  return html`<${Modal} title="Add a new publisher" width=${640} onClose=${onClose}
+    subtitle="Just the vendor's GST details. Your order stays exactly as it is. Contacts and bank details can be added later."
     footer=${html`<button type="button" className="btn btn-secondary" onClick=${onClose} disabled=${saving}>Cancel</button>
       <button type="button" className="btn btn-primary" onClick=${() => save(!!dupes)} disabled=${saving}>${dupes ? 'Add anyway' : 'Add Publisher'}</button>`}>
     ${dupes && html`<div className="notice notice-warn" role="alert"><${Icon} name="alert" size=${16} /><div>
@@ -40,13 +34,8 @@ function QuickAddPublisherModal({ initialName = '', onCreated, onClose }) {
           <div className="dupe-reasons">${reasons.map((r) => html`<span key=${r} className="tag tag-warn">${r}</span>`)}</div></div>
         <button type="button" className="btn btn-primary btn-sm" onClick=${() => onCreated(p, { existing: true })}>Use this one</button>
       </li>`)}</ul></div></div>`}
-    <div className="form-grid" style=${{ marginTop: dupes ? 14 : 0 }}>
-      <${TextField} label="Publisher name" required className="col-6" autoFocus ...${field('publisherName')} />
-      <${TextField} label="Legal company name" required className="col-6" ...${field('legalEntityName')} />
-      <${TextField} label="Contact person" required className="col-6" ...${field('contactPerson')} />
-      <${TextField} label="Email" required type="email" className="col-6" ...${field('email')} />
-      <${TextField} label="GSTIN" className="col-6" maxLength=${15} placeholder="Optional" transform=${(v) => v.toUpperCase()} ...${field('tax.gstin')} />
-      <${TextField} label="Phone" type="tel" className="col-6" placeholder="Optional" ...${field('phone')} />
+    <div style=${{ marginTop: dupes ? 14 : 0 }}>
+      <${AddPublisherFields} d=${d} onFileUploaded=${(id) => uploads.current.add(id)} />
     </div>
   <//>`;
 }

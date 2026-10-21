@@ -137,9 +137,9 @@ function PublisherForm({ mode, initial, onSaved, onCancel, initialTab = 'basic' 
     onCancel();
   }
 
-  const setMsme = (registered) => {
-    set('msme.registered', registered);
-    if (!registered) set('msme.registrationNumber', '');
+  const setMsmeNumber = (v) => {
+    setForm((f) => ({ ...f, msme: { ...f.msme, registrationNumber: v, registered: !!v.trim() } }));
+    setErrors((e) => { const n = { ...e }; delete n['msme.registrationNumber']; delete n['msme.document']; return n; });
   };
   const contacts = form.additionalContacts || [];
   const setContacts = (next) => setForm((f) => ({ ...f, additionalContacts: next }));
@@ -156,9 +156,15 @@ function PublisherForm({ mode, initial, onSaved, onCancel, initialTab = 'basic' 
       <${SelectField} label="Company type" className="col-4" placeholder="Select type" options=${COMPANY_TYPES} ...${field('companyType')} />
       <${TextField} label="GSTIN" className="col-6" placeholder="15 characters, e.g. 27AAACC1206D1ZM" maxLength=${15} transform=${(v) => v.toUpperCase()} ...${field('tax.gstin', { onBlur: onGstinBlur })} />
       <${TextField} label="PAN" className="col-6" placeholder="10 characters, e.g. AAACC1206D" hint="Filled in for you when you enter a valid GSTIN." maxLength=${10} transform=${(v) => v.toUpperCase()} ...${field('tax.pan')} />
-      <${Segmented} label="MSME registered?" className="col-6" name="msme.registered" value=${form.msme.registered} onChange=${setMsme}
-        options=${[{ value: true, label: 'Yes' }, { value: false, label: 'No' }]} />
-      ${form.msme.registered && html`<${TextField} label="Udyam registration number" required className="col-6" placeholder="UDYAM-XX-00-0000000" transform=${(v) => v.toUpperCase()} ...${field('msme.registrationNumber')} />`}
+      <${TextField} label="MSME Registration Number" className="col-12" placeholder="UDYAM-XX-00-0000000" transform=${(v) => v.toUpperCase()}
+        hint="Not mandatory. If you enter a number, you must also upload the MSME certificate."
+        ...${field('msme.registrationNumber', { onChange: setMsmeNumber })} />
+      ${form.msme.registrationNumber.trim() && html`<div className="col-12 msme-upload" data-error=${errors['msme.document'] ? 'true' : undefined}>
+        <${ComplianceDocuments} staged onlyMsme msmeRegistered docs=${form.complianceDocuments}
+          onFileUploaded=${(id) => sessionUploads.current.add(id)}
+          onChange=${(docs) => { setForm((f) => ({ ...f, complianceDocuments: docs })); setErrors((e) => { const n = { ...e }; delete n['msme.document']; return n; }); }} />
+        ${errors['msme.document'] && html`<div className="field-error" role="alert"><${Icon} name="alert" size=${12} /><span>${errors['msme.document']}</span></div>`}
+      </div>`}
     </div>
     <div className="more-block">
       <button type="button" className="link-btn" aria-expanded=${moreTax} onClick=${() => setMoreTax(!moreTax)}><${Icon} name=${moreTax ? 'chevronDown' : 'chevronRight'} size=${13} /> ${moreTax ? 'Hide' : 'Show'} CIN and TAN (optional)</button>

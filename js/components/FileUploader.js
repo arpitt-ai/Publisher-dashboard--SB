@@ -124,7 +124,7 @@ function OtherDocs({ type, docs, onUpload, onView, onDelete, readOnly, busy }) {
   </div>`;
 }
 
-function ComplianceDocuments({ docs, onChange, onFileUploaded, msmeRegistered = false, readOnly = false, staged = false }) {
+function ComplianceDocuments({ docs, onChange, onFileUploaded, msmeRegistered = false, readOnly = false, staged = false, onlyMsme = false }) {
   const [busy, setBusy] = useState(null);
   const [viewing, setViewing] = useState(null);
   const byType = (code) => docs.filter((d) => d.type === code);
@@ -170,9 +170,13 @@ function ComplianceDocuments({ docs, onChange, onFileUploaded, msmeRegistered = 
   latest.current = docs;
 
   const others = COMPLIANCE_BY_CODE.OTHER;
+  const msmeCard = html`<${MsmeCard} doc=${byType('MSME')[0]} busy=${busy === 'MSME'} readOnly=${readOnly} msmeRegistered=${msmeRegistered}
+      onUpload=${(f) => upload('MSME', f)} onView=${() => setViewing(byType('MSME')[0])} onDelete=${() => remove(byType('MSME')[0])} />`;
+  if (onlyMsme) {
+    return html`<div className="compliance">${msmeCard}${viewing && html`<${FilePreviewModal} doc=${viewing} onClose=${() => setViewing(null)} />`}</div>`;
+  }
   return html`<div className="compliance">
-    <${MsmeCard} doc=${byType('MSME')[0]} busy=${busy === 'MSME'} readOnly=${readOnly} msmeRegistered=${msmeRegistered}
-      onUpload=${(f) => upload('MSME', f)} onView=${() => setViewing(byType('MSME')[0])} onDelete=${() => remove(byType('MSME')[0])} />
+    ${msmeCard}
     <div className="slot-grid">
       ${COMPLIANCE_TYPES.filter((t) => t.single && t.code !== 'MSME').map((t) => html`<${SlotCard} key=${t.code} type=${t} doc=${byType(t.code)[0]} busy=${busy === t.code} readOnly=${readOnly}
         onUpload=${(f) => upload(t.code, f)} onView=${() => setViewing(byType(t.code)[0])} onDelete=${() => remove(byType(t.code)[0])} />`)}

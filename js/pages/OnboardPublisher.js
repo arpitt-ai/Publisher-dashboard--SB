@@ -1,10 +1,8 @@
 function OnboardPublisherPage() {
   usePageMeta('Add Publisher', [{ label: 'Publishers', to: '/publishers' }, { label: 'Add Publisher' }]);
-  const initial = useMemo(() => createEmptyPublisher(), []);
   if (!can('publisher.edit')) return html`<${NoPermission} what="add publishers" back="/publishers" />`;
   return html`<div className="page page-form">
-    <${PublisherForm} mode="create" initial=${initial}
-      onSaved=${(p) => navigate(`/publishers/${p.id}`)} onCancel=${() => navigate('/publishers')} />
+    <${PublisherAddForm} onSaved=${(p) => navigate(`/publishers/${p.id}`)} onCancel=${() => navigate('/publishers')} />
   </div>`;
 }
 
