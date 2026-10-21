@@ -14,7 +14,7 @@ function Sidebar({ path, open, onClose }) {
     <aside className=${'sidebar' + (open ? ' is-open' : '')} aria-label="Main menu">
       <div className="sidebar-brand">
         <span className="brand-mark"><img src=${LOGO_SIDEBAR_DATA_URI} alt="" /></span>
-        <span className="brand-name">Publisher Portal<small>Orders, publishers, campaigns</small></span>
+        <span className="brand-name">Vendor Portal<small>Orders, publishers, campaigns</small></span>
       </div>
       <nav className="sidebar-nav">
         ${NAV.map((n) => {

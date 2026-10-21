@@ -50,7 +50,7 @@ function usePageMeta(title, crumbs = []) {
   useEffect(() => {
     pageMeta.value = { title, crumbs };
     pageMeta.listeners.forEach((f) => f());
-    document.title = title ? `${title} · Publisher Portal` : 'Publisher Portal';
+    document.title = title ? `${title} · Vendor Portal` : 'Vendor Portal';
     // eslint-disable-next-line
   }, [key]);
 }

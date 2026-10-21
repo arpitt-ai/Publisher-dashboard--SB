@@ -1,4 +1,4 @@
-# Publisher Portal
+# Vendor Portal
 
 Add a publisher once, then create ROs, POs and IOs for it in about a minute. Evolved from the first-draft `ro_dashboard_1.html`; all earlier publishers, ROs, numbering and settings carry over.
 
