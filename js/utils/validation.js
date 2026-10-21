@@ -92,7 +92,7 @@ function publisherGaps(p) {
  *  - default (draft): only what is needed to save — a publisher and a campaign — plus anything typed that is wrong.
  *  - full: everything needed before the order can be submitted.
  */
-function validateDocument(d, { full = false } = {}) {
+function validateDocument(d, { full = false, today = todayISO() } = {}) {
   const e = {};
   if (!d.publisherId) e.publisherId = 'Please choose a publisher';
 
@@ -102,10 +102,13 @@ function validateDocument(d, { full = false } = {}) {
   if (norm(c.gstin) && !RX.gstin.test(upper(c.gstin))) e['client.gstin'] = 'This client GSTIN does not look right. It has 15 characters';
 
   if (full || cp.startDate || cp.endDate) {
+    // Neither date may be in the past (today is allowed), and the end cannot come before the start.
     if (!cp.startDate) e['campaign.startDate'] = 'Please choose a start date';
     else if (!isValidISODate(cp.startDate)) e['campaign.startDate'] = 'This date is not valid';
+    else if (cp.startDate < today) e['campaign.startDate'] = 'The start date cannot be in the past. Choose today or a later date';
     if (!cp.endDate) e['campaign.endDate'] = 'Please choose an end date';
     else if (!isValidISODate(cp.endDate)) e['campaign.endDate'] = 'This date is not valid';
+    else if (cp.endDate < today) e['campaign.endDate'] = 'The end date cannot be in the past. Choose today or a later date';
     else if (isValidISODate(cp.startDate) && cp.endDate < cp.startDate) e['campaign.endDate'] = 'The end date cannot be before the start date';
   }
 

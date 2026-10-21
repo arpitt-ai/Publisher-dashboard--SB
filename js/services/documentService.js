@@ -184,7 +184,7 @@ const documentService = (() => {
       // A document must be complete before it leaves Draft.
       if (before.status === 'Draft' && (to === 'Pending Approval' || to === 'Approved')) {
         const errs = validateDocument({ ...before, paymentTerms: before.paymentTerms || settings.defaults.paymentTerms }, { full: true });
-        if (Object.keys(errs).length) throw new Error(`${before.documentNumber} is missing details (${Object.values(errs)[0].toLowerCase()}). Edit it and try again.`);
+        if (Object.keys(errs).length) throw new Error(`${before.documentNumber} cannot be submitted yet: ${Object.values(errs)[0]}. Edit it and try again.`);
       }
 
       const after = {

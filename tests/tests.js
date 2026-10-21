@@ -4,6 +4,9 @@
 const YEAR = new Date().getFullYear();
 const SAME_STATE_GSTIN = '33AAHCD7973M1Z2'; // Tamil Nadu, the same state as the default agency
 const OTHER_STATE_GSTIN = '27AAACC1206D1ZM'; // Maharashtra
+/* Order dates must not be in the past, so the fixtures are always a few days ahead of whenever the tests run. */
+const D_START = addDays(todayISO(), 5);
+const D_END = addDays(todayISO(), 35);
 
 /* ── builders ── */
 const cm = (over = {}) => ({ pricingModel: 'CPM', rate: 30, quantity: 10000000, spendOverride: false, gstPercent: 18, taxTreatment: 'auto', ...over });
@@ -15,13 +18,13 @@ const docInput = (publisherId, over = {}) => {
   return {
     ...base, publisherId,
     client: { name: 'Acme', legalEntity: '', address: '', gstin: '' },
-    campaign: { name: 'Launch', startDate: '2026-11-01', endDate: '2026-11-30', type: '', platform: 'Meta', adFormat: '' },
+    campaign: { name: 'Launch', startDate: D_START, endDate: D_END, type: '', platform: 'Meta', adFormat: '' },
     commercial: { ...base.commercial, pricingModel: 'CPM', rate: 30, quantity: 1000000, gstPercent: 18 },
     ...over,
   };
 };
 const validForm = (over = {}) => ({
-  publisherId: 'p1', campaign: { name: 'Launch', startDate: '2026-11-01', endDate: '2026-11-30' }, client: { name: 'Acme', gstin: '' },
+  publisherId: 'p1', campaign: { name: 'Launch', startDate: D_START, endDate: D_END }, client: { name: 'Acme', gstin: '' },
   commercial: { pricingModel: 'CPM', rate: '30', quantity: '1000000', estimatedSpend: '30000', spendOverride: false, discountType: 'percent', discountValue: '', otherCharges: '', gstPercent: '18' },
   deliverables: {}, paymentTerms: '30 days', issueDate: '2026-10-21', ...over,
 });
@@ -167,11 +170,31 @@ test('Validation › a complete order is valid', () => { assert.deepEqual(valida
 test('Validation › a draft only needs a client, a campaign and a publisher', () => {
   assert.deepEqual(validateDocument({ publisherId: 'p', campaign: { name: 'X' }, client: { name: 'Acme' }, commercial: { pricingModel: 'CPM', gstPercent: '18' }, issueDate: '2026-10-21' }), {});
   assert.ok(validateDocument(validForm({ publisherId: '' })).publisherId);
-  assert.deepEqual(validateDocument(validForm({ campaign: { name: '', startDate: '2026-11-01', endDate: '2026-11-30' } }), { full: true }), {}); // a campaign name is no longer needed
+  assert.deepEqual(validateDocument(validForm({ campaign: { name: '', startDate: D_START, endDate: D_END } }), { full: true }), {}); // a campaign name is no longer needed
   assert.equal(validateDocument(validForm({ client: { name: '' } }))['client.name'], 'Please choose the client this order is for');
 });
 test('Validation › the end date cannot be before the start date', () => {
-  assert.equal(validateDocument(validForm({ campaign: { name: 'X', startDate: '2026-11-10', endDate: '2026-11-01' } }), { full: true })['campaign.endDate'], 'The end date cannot be before the start date');
+  assert.equal(validateDocument(validForm({ campaign: { name: 'X', startDate: addDays(todayISO(), 10), endDate: addDays(todayISO(), 3) } }), { full: true })['campaign.endDate'], 'The end date cannot be before the start date');
+});
+test('Validation › the start date cannot be in the past, but today is fine', () => {
+  const today = '2026-10-21';
+  const at = (start, end) => validateDocument(validForm({ campaign: { name: 'X', startDate: start, endDate: end } }), { full: true, today });
+  assert.equal(at('2026-10-20', '2026-11-30')['campaign.startDate'], 'The start date cannot be in the past. Choose today or a later date');
+  assert.equal(at('2026-10-21', '2026-11-30')['campaign.startDate'], undefined); // today is allowed
+  assert.equal(at('2026-10-22', '2026-11-30')['campaign.startDate'], undefined);
+});
+test('Validation › the end date cannot be in the past, but today is fine', () => {
+  const today = '2026-10-21';
+  const at = (start, end) => validateDocument(validForm({ campaign: { name: 'X', startDate: start, endDate: end } }), { full: true, today });
+  assert.equal(at('2026-10-21', '2026-10-20')['campaign.endDate'], 'The end date cannot be in the past. Choose today or a later date');
+  assert.equal(at('2026-10-21', '2026-10-21')['campaign.endDate'], undefined); // a one-day flight starting and ending today
+  assert.equal(at('2026-10-25', '2026-10-24')['campaign.endDate'], 'The end date cannot be before the start date');
+});
+test('Validation › the date rules also apply to a draft, but only to dates that were entered', () => {
+  const today = '2026-10-21';
+  const draft = (cp) => validateDocument(validForm({ campaign: cp }), { today });
+  assert.ok(draft({ name: 'X', startDate: '2026-10-01', endDate: '2026-11-01' })['campaign.startDate']);
+  assert.deepEqual(draft({ name: 'X' }), {}); // no dates yet is fine for a draft
 });
 test('Validation › impossible dates are refused', () => {
   assert.ok(validateDocument(validForm({ issueDate: '2026-02-30' })).issueDate);
@@ -258,7 +281,7 @@ test('Workflow › a Sent document cannot go back to Draft', async () => {
 test('Workflow › an incomplete draft cannot be submitted', async () => {
   const p = await newPub();
   const d = await documentService.create(docInput(p.id, { campaign: { name: 'Launch', startDate: '', endDate: '', type: '', platform: '', adFormat: '' } }));
-  await assert.rejects(documentService.setStatus(d.id, 'Pending Approval'), /missing details/);
+  await assert.rejects(documentService.setStatus(d.id, 'Pending Approval'), /cannot be submitted yet/);
 });
 test('Workflow › cancelling records the reason', async () => {
   const p = await newPub(); const d = await documentService.create(docInput(p.id));

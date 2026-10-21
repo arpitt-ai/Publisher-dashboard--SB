@@ -10,10 +10,10 @@ function Field({ label, required = false, error, hint, className = '', children,
   </div>`;
 }
 
-function TextField({ label, value, onChange, onBlur, error, required, placeholder, type = 'text', hint, className, name, prefix, suffix, inputMode, maxLength, disabled, readOnly, autoFocus, transform, autoComplete = 'off' }) {
+function TextField({ label, value, onChange, onBlur, error, required, placeholder, type = 'text', hint, className, name, prefix, suffix, inputMode, maxLength, disabled, readOnly, autoFocus, transform, autoComplete = 'off', min }) {
   const id = React.useId();
   const input = html`<input id=${id} className=${'input' + (error ? ' has-error' : '') + (readOnly ? ' is-readonly' : '')} type=${type} value=${value ?? ''} placeholder=${placeholder}
-    inputMode=${inputMode} maxLength=${maxLength} disabled=${disabled} readOnly=${readOnly} autoFocus=${autoFocus} autoComplete=${autoComplete}
+    inputMode=${inputMode} maxLength=${maxLength} min=${min} disabled=${disabled} readOnly=${readOnly} autoFocus=${autoFocus} autoComplete=${autoComplete}
     aria-invalid=${error ? 'true' : undefined}
     onChange=${(e) => onChange(transform ? transform(e.target.value) : e.target.value)} onBlur=${onBlur} />`;
   return html`<${Field} label=${label} required=${required} error=${error} hint=${hint} className=${className} name=${name} htmlFor=${id}>
