@@ -1,7 +1,7 @@
 /* Six sections, always in the same order, always with a text label next to the icon. */
 const NAV = [
   { label: 'Dashboard', icon: 'dashboard', to: '/', active: (p) => p === '/' },
-  { label: 'Onboard Publisher', icon: 'building', to: '/publishers', active: (p) => p.startsWith('/publishers') },
+  { label: 'Publishers', icon: 'building', to: '/publishers', active: (p) => p.startsWith('/publishers') },
   { label: 'Clients', icon: 'campaign', to: '/campaigns', active: (p) => p.startsWith('/campaigns') },
   { label: 'Orders & Documents', icon: 'file', to: '/documents', active: (p) => p.startsWith('/documents') },
   { label: 'Reports', icon: 'chart', to: '/reports', active: (p) => p.startsWith('/reports') },
