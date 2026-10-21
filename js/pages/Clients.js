@@ -46,12 +46,12 @@ function ClientPage({ params }) {
   const key = params.key;
   const summary = data ? clientSummaries(data.documents, data.campaigns).find((c) => c.key === key) : null;
   const name = summary ? summary.name : 'Client';
-  usePageMeta(name, [{ label: 'Campaigns', to: '/campaigns' }, { label: name }]);
+  usePageMeta(name, [{ label: 'Clients', to: '/campaigns' }, { label: name }]);
 
   if (!data) return html`<div className="page"><${CenterSpinner} /></div>`;
   if (!summary) {
     return html`<div className="page"><section className="card"><${EmptyState} icon="building" title="No documents for this client" description="This client has no ROs, POs or IOs, or it was archived."
-      action=${html`<${Link} to="/campaigns" className="btn btn-primary">Back to Campaigns</${Link}>`} /></section></div>`;
+      action=${html`<${Link} to="/campaigns" className="btn btn-primary">Back to Clients</${Link}>`} /></section></div>`;
   }
 
   const mine = data.documents.filter((d) => !d.archived && clientKey(d.client?.name) === key).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));

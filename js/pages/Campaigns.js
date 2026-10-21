@@ -2,7 +2,7 @@
 const bookedValue = (docs) => docs.filter((d) => !d.archived && BOOKED_STATUSES.includes(d.status)).reduce((s, d) => s + toNum(d.commercial?.totalAmount), 0);
 
 function CampaignsPage({ query }) {
-  usePageMeta('Campaigns', []);
+  usePageMeta('Clients', []);
   const data = usePortalData();
   const [q, setQ] = useState(query.q || '');
   const [status, setStatus] = useState(CAMPAIGN_STATUSES.includes(query.status) ? query.status : '');

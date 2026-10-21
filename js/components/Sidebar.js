@@ -2,7 +2,7 @@
 const NAV = [
   { label: 'Dashboard', icon: 'dashboard', to: '/', active: (p) => p === '/' },
   { label: 'Onboard Publisher', icon: 'building', to: '/publishers', active: (p) => p.startsWith('/publishers') },
-  { label: 'Campaigns', icon: 'campaign', to: '/campaigns', active: (p) => p.startsWith('/campaigns') },
+  { label: 'Clients', icon: 'campaign', to: '/campaigns', active: (p) => p.startsWith('/campaigns') },
   { label: 'Orders & Documents', icon: 'file', to: '/documents', active: (p) => p.startsWith('/documents') },
   { label: 'Reports', icon: 'chart', to: '/reports', active: (p) => p.startsWith('/reports') },
   { label: 'Settings', icon: 'settings', to: '/settings', active: (p) => p.startsWith('/settings') || p.startsWith('/activity') },
