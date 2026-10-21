@@ -216,7 +216,8 @@ test('Validation › a complete order is valid', () => { assert.deepEqual(valida
 test('Validation › a draft only needs a client, a campaign and a publisher', () => {
   assert.deepEqual(validateDocument({ publisherId: 'p', campaign: { name: 'X' }, client: { name: 'Acme' }, commercial: { pricingModel: 'CPM', gstPercent: '18' }, issueDate: '2026-10-21' }), {});
   assert.ok(validateDocument(validForm({ publisherId: '' })).publisherId);
-  assert.deepEqual(validateDocument(validForm({ campaign: { name: '', startDate: D_START, endDate: D_END } }), { full: true }), {}); // a campaign name is no longer needed
+  assert.deepEqual(validateDocument(validForm({ campaign: { name: '', startDate: D_START, endDate: D_END } })), {}); // a draft can be saved without a campaign name
+  assert.equal(validateDocument(validForm({ campaign: { name: '  ', startDate: D_START, endDate: D_END } }), { full: true })['campaign.name'], 'Please enter the campaign name'); // but it is needed to submit
   assert.equal(validateDocument(validForm({ client: { name: '' } }))['client.name'], 'Please choose the client this order is for');
 });
 test('Validation › the end date cannot be before the start date', () => {
@@ -664,6 +665,15 @@ test('PDF › the commercial breakdown is printed', async () => {
   const d = await documentService.create(docInput(p.id, { commercial: { ...docInput(p.id).commercial, discountType: 'percent', discountValue: 10, otherCharges: 500, otherChargesLabel: 'Ad serving' } }));
   const text = pdfText(await pdfService.build(d));
   ['Taxable value', 'IGST @ 18%', 'Ad serving', 'Discount (10%)', 'Total (including tax)', 'Payment Terms', 'Accepted by publisher'].forEach((w) => assert.ok(text.includes(w), w));
+});
+test('PDF › shows the client, the campaign name and the duration', async () => {
+  const p = await newPub();
+  const d = await documentService.create(docInput(p.id, { campaign: { name: 'Diwali Mega Sale 2026', startDate: D_START, endDate: D_END, type: '', platform: '', adFormat: '' } }));
+  const pdf = await pdfService.build(d);
+  const text = pdfText(pdf);
+  ['Client', 'Campaign', 'Diwali Mega Sale 2026', 'Duration'].forEach((w) => assert.ok(text.includes(w), w));
+  assert.ok(!text.includes('Campaign period'));
+  assert.equal(pdf.getNumberOfPages(), 1); // the extra row must not push a standard order onto a second page
 });
 test('PDF › documents that are not final are marked', async () => {
   const p = await newPub(); const d = await documentService.create(docInput(p.id));

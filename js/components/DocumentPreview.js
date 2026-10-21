@@ -62,9 +62,9 @@ function DocumentPreview({ doc, publisher, org, paymentTerms, createdBy, created
       <h4>Campaign</h4>
       <div className="paper-grid">
         ${cp.name && html`<div><span className="paper-label">Campaign</span><strong>${cp.name}</strong></div>`}
-        <div><span className="paper-label">Period</span>${cp.startDate || cp.endDate ? `${fmtDate(cp.startDate)} – ${fmtDate(cp.endDate)}` : empty('')}</div>
-        <div><span className="paper-label">Platform</span>${empty(cp.platform)}</div>
-        <div><span className="paper-label">Ad format</span>${empty(cp.adFormat)}</div>
+        <div><span className="paper-label">Duration</span>${cp.startDate || cp.endDate ? `${fmtDate(cp.startDate)} – ${fmtDate(cp.endDate)}` : empty('')}</div>
+        ${cp.platform && html`<div><span className="paper-label">Platform</span>${cp.platform}</div>`}
+        ${cp.adFormat && html`<div><span className="paper-label">Ad format</span>${cp.adFormat}</div>`}
         <div><span className="paper-label">Pricing</span>${empty(describePricing(cm))}</div>
       </div>
       ${(deliverables.length > 0 || (doc.deliverables && doc.deliverables.other)) && html`<div className="paper-deliver">

@@ -182,8 +182,9 @@ const pdfService = (() => {
 
     // Table 1 — what is being booked
     const details = [
-      [cp.name ? 'Campaign' : 'Client', T(cp.name ? `${cp.name}${client.name ? '  (for ' + client.name + ')' : ''}` : (client.name || '-'))],
-      ['Campaign period', cp.startDate || cp.endDate ? `${fmtDate(cp.startDate)} to ${fmtDate(cp.endDate)}` : '-'],
+      ['Client', T(client.name || '-')],
+      ...(cp.name ? [['Campaign', T(cp.name)]] : []),
+      ['Duration', cp.startDate || cp.endDate ? `${fmtDate(cp.startDate)} to ${fmtDate(cp.endDate)}` : '-'],
     ];
     const placement = [cp.platform, cp.adFormat].filter(Boolean).join(' / ');
     if (placement) details.push(['Platform / format', T(placement)]);
@@ -250,12 +251,13 @@ const pdfService = (() => {
         doc.text(line, M, y);
         y += 4.4;
       }
-      y += 4;
+      y += 1.5;
     }
 
     // Sign-off: publisher acceptance (left) and agency signatory (right). Kept compact so a standard order fits on one page.
-    ensureSpace(30);
-    y += 1;
+    const approvedBy = [...(docData.statusHistory || [])].reverse().find((h) => h.to === 'Approved' && h.by && h.by.id !== 'system-upgrade');
+    ensureSpace(approvedBy ? 28 : 23); // only as tall as it really is, so it is not pushed alone onto a new page
+    y += 1.5;
     const signTop = y;
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
@@ -279,7 +281,7 @@ const pdfService = (() => {
     doc.circle(W - M - 12, signTop + 10, 6.5, 'S');
     doc.setFontSize(8.5);
     doc.text('Authorised Signatory', W - M, signTop + 21, { align: 'right' });
-    const approved = [...(docData.statusHistory || [])].reverse().find((h) => h.to === 'Approved' && h.by && h.by.id !== 'system-upgrade');
+    const approved = approvedBy;
     if (approved) {
       doc.setFontSize(7.5);
       doc.setTextColor(110, 110, 110);

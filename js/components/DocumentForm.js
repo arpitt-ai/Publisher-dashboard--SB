@@ -94,7 +94,7 @@ function DocSummary({ doc, pub, number, typeCode, c }) {
     ${row('Client', doc.client.name)}
     ${doc.campaign.name && row('Campaign', doc.campaign.name)}
     ${row('Publisher', pub?.publisherName)}
-    ${row('Period', doc.campaign.startDate && doc.campaign.endDate ? `${fmtDate(doc.campaign.startDate)} – ${fmtDate(doc.campaign.endDate)}` : '')}
+    ${row('Duration', doc.campaign.startDate && doc.campaign.endDate ? `${fmtDate(doc.campaign.startDate)} – ${fmtDate(doc.campaign.endDate)}` : '')}
     <div className="sum-divider"></div>
     ${row('Subtotal', has ? fmtINR(c.subtotal) : '')}
     ${c.discount > 0 && row('Discount', `− ${fmtINR(c.discount)}`)}
@@ -313,6 +313,11 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
       </div>
     <//>`}
     <${FormSection} title="Client" description="Who is this order for?">${clientBlock}<//>
+    ${hasClient && html`<${FormSection} title="Campaign name" description="This is printed on the document.">
+      <div className="form-grid">
+        <${TextField} label="Campaign name" required className="col-12" placeholder="e.g. Diwali Mega Sale 2026" ...${field('campaign.name')} />
+      </div>
+    <//>`}
     <${FormSection} title="Publisher" description="Who will run it? Their details fill in automatically.">${publisherBlock}<//>
   </div>`;
 
