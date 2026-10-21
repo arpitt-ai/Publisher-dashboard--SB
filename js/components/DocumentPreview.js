@@ -18,7 +18,7 @@ function DocumentPreview({ doc, publisher, org, paymentTerms, createdBy, created
 
   return html`<article className="paper" aria-label=${`${type.label} preview`}>
     <header className="paper-head">
-      <div className="paper-brand"><img className="paper-logo" src=${LOGO_SIDEBAR_DATA_URI} alt="" /><span>${org.name}</span></div>
+      <div className="paper-brand"><img className="paper-logo" src=${LOGO_DARK_DATA_URI} alt="Social Beat" /><span>${org.name}</span></div>
       <div className="paper-cities">${org.cities.replace(/\s{2,}/g, ' ')}</div>
     </header>
 

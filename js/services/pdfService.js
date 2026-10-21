@@ -87,7 +87,7 @@ const pdfService = (() => {
     // Header — logo left, cities right
     doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, W, 28, 'F');
-    doc.addImage(LOGO_PDF_DATA_URI, 'JPEG', M, 4, 52, 18, undefined, 'FAST');
+    doc.addImage(LOGO_DARK_DATA_URI, 'PNG', M, 5, 17 * LOGO_RATIO, 17, 'sb-logo', 'FAST'); // Social Beat logo, transparent background
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 100, 100);

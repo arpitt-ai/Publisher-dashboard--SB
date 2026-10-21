@@ -13,8 +13,8 @@ function Sidebar({ path, open, onClose }) {
     ${open && html`<div className="sidebar-scrim" onClick=${onClose}></div>`}
     <aside className=${'sidebar' + (open ? ' is-open' : '')} aria-label="Main menu">
       <div className="sidebar-brand">
-        <span className="brand-mark"><img src=${LOGO_SIDEBAR_DATA_URI} alt="" /></span>
-        <span className="brand-name">Vendor Portal<small>Orders, publishers, campaigns</small></span>
+        <img className="brand-logo" src=${LOGO_WHITE_DATA_URI} alt="Social Beat" />
+        <span className="brand-name">Vendor Portal<small>Orders, publishers, clients</small></span>
       </div>
       <nav className="sidebar-nav">
         ${NAV.map((n) => {
