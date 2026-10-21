@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Publisher Portal tests</title>
+  <style>
+    body { font: 14px/1.5 system-ui, sans-serif; margin: 24px; color: #0f172a; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    #summary { font-weight: 700; padding: 10px 14px; border-radius: 8px; margin: 12px 0; }
+    #summary.pass { background: #ecfdf3; color: #067647; } #summary.fail { background: #fef3f2; color: #b42318; }
+    ul { list-style: none; padding: 0; } li { padding: 4px 0; border-bottom: 1px solid #eef0f4; }
+    .ok::before { content: '✓ '; color: #067647; } .bad::before { content: '✗ '; color: #b42318; font-weight: 700; }
+    pre { background: #fef3f2; padding: 8px; border-radius: 6px; white-space: pre-wrap; margin: 4px 0 0; }
+  </style>
+</head>
+<body>
+  <h1>Publisher Portal — automated tests</h1>
+  <div>Runs the real app code against a separate, throw-away storage area (prefix <code>pptest:</code>). Your own data is never touched.</div>
+  <div id="summary">Running…</div>
+  <ul id="results"></ul>
+
+  <script>window.PP_STORAGE_PREFIX = 'pptest:';</script>
+  <script src="../vendor/react.production.min.js"></script>
+  <script src="../vendor/react-dom.production.min.js"></script>
+  <script src="../vendor/htm.umd.js"></script>
+  <script src="../vendor/jspdf.umd.min.js"></script>
+  <script src="../vendor/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- Same files, same order as index.html — everything up to the services (no screens). -->
+  <script src="../js/utils/react.js"></script>
+  <script src="../js/assets/logos.js"></script>
+  <script src="../js/config/currentUser.js"></script>
+  <script src="../js/config/constants.js"></script>
+  <script src="../js/config/permissions.js"></script>
+  <script src="../js/utils/formatting.js"></script>
+  <script src="../js/utils/finance.js"></script>
+  <script src="../js/utils/validation.js"></script>
+  <script src="../js/utils/documentNumbering.js"></script>
+  <script src="../js/utils/workflow.js"></script>
+  <script src="../js/utils/diff.js"></script>
+  <script src="../js/utils/search.js"></script>
+  <script src="../js/utils/summary.js"></script>
+  <script src="../js/utils/csv.js"></script>
+  <script src="../js/data/models.js"></script>
+  <script src="../js/services/storageService.js"></script>
+  <script src="../js/services/auditService.js"></script>
+  <script src="../js/services/settingsService.js"></script>
+  <script src="../js/services/fileService.js"></script>
+  <script src="../js/services/publisherService.js"></script>
+  <script src="../js/services/campaignService.js"></script>
+  <script src="../js/services/documentService.js"></script>
+  <script src="../js/services/pdfService.js"></script>
+  <script src="../js/services/reportService.js"></script>
+  <script src="../js/data/seed.js"></script>
+  <script src="../js/services/migrationService.js"></script>
+  <script src="../js/services/seedService.js"></script>
+
+  <script src="harness.js"></script>
+  <script src="tests.js"></script>
+  <script>runAllTests();</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Operating-system and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Local-only files
+*.log
+*.local
+node_modules/
+
+# Backups downloaded from Settings contain real publisher and bank data. Never commit them.
+publisher-portal-backup-*.json

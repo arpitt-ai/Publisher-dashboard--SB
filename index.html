@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Publisher Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="boot" class="boot"><div class="spinner"></div><div>Loading portal…</div></div>
+  <div id="root"></div>
+
+  <!-- Vendor libraries (local copies, no CDN needed) -->
+  <script src="vendor/react.production.min.js"></script>
+  <script src="vendor/react-dom.production.min.js"></script>
+  <script src="vendor/htm.umd.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="vendor/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- Foundation: config, constants, utilities. The files in tests/ load this same block, so keep the order. -->
+  <script src="js/utils/react.js"></script>
+  <script src="js/assets/logos.js"></script>
+  <script src="js/config/currentUser.js"></script>
+  <script src="js/config/constants.js"></script>
+  <script src="js/config/permissions.js"></script>
+  <script src="js/utils/formatting.js"></script>
+  <script src="js/utils/finance.js"></script>
+  <script src="js/utils/validation.js"></script>
+  <script src="js/utils/documentNumbering.js"></script>
+  <script src="js/utils/workflow.js"></script>
+  <script src="js/utils/diff.js"></script>
+  <script src="js/utils/search.js"></script>
+  <script src="js/utils/summary.js"></script>
+  <script src="js/utils/csv.js"></script>
+  <script src="js/utils/router.js"></script>
+  <script src="js/data/models.js"></script>
+
+  <!-- Services (storage-agnostic API the UI talks to) -->
+  <script src="js/services/storageService.js"></script>
+  <script src="js/services/auditService.js"></script>
+  <script src="js/services/settingsService.js"></script>
+  <script src="js/services/fileService.js"></script>
+  <script src="js/services/publisherService.js"></script>
+  <script src="js/services/campaignService.js"></script>
+  <script src="js/services/documentService.js"></script>
+  <script src="js/services/pdfService.js"></script>
+  <script src="js/services/reportService.js"></script>
+  <script src="js/data/seed.js"></script>
+  <script src="js/services/migrationService.js"></script>
+  <script src="js/services/seedService.js"></script>
+  <script src="js/utils/hooks.js"></script>
+
+  <!-- Components -->
+  <script src="js/components/Icon.js"></script>
+  <script src="js/components/Toast.js"></script>
+  <script src="js/components/Modal.js"></script>
+  <script src="js/components/StatusBadge.js"></script>
+  <script src="js/components/EmptyState.js"></script>
+  <script src="js/components/KPICard.js"></script>
+  <script src="js/components/SearchBar.js"></script>
+  <script src="js/components/Tabs.js"></script>
+  <script src="js/components/MenuButton.js"></script>
+  <script src="js/components/DataTable.js"></script>
+  <script src="js/components/FormFields.js"></script>
+  <script src="js/components/FileUploader.js"></script>
+  <script src="js/components/ActivityLog.js"></script>
+  <script src="js/components/PublisherPicker.js"></script>
+  <script src="js/components/PublisherForm.js"></script>
+  <script src="js/components/QuickAddPublisher.js"></script>
+  <script src="js/components/DocumentPreview.js"></script>
+  <script src="js/components/DocumentActions.js"></script>
+  <script src="js/components/DocumentForm.js"></script>
+  <script src="js/components/Sidebar.js"></script>
+  <script src="js/components/Topbar.js"></script>
+
+  <!-- Pages -->
+  <script src="js/pages/Dashboard.js"></script>
+  <script src="js/pages/Publishers.js"></script>
+  <script src="js/pages/OnboardPublisher.js"></script>
+  <script src="js/pages/PublisherProfile.js"></script>
+  <script src="js/pages/Campaigns.js"></script>
+  <script src="js/pages/Documents.js"></script>
+  <script src="js/pages/CreateDocument.js"></script>
+  <script src="js/pages/DocumentDetail.js"></script>
+  <script src="js/pages/Reports.js"></script>
+  <script src="js/pages/Activity.js"></script>
+  <script src="js/pages/Settings.js"></script>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
