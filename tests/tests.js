@@ -508,6 +508,24 @@ test('Dashboard › every number comes from the records', () => {
   assert.deepEqual(n.upcoming.map((u) => [u.campaign.id, u.kind]), [['c1', 'Starts']]); // the 'Completed' campaign and far-off end dates are left out
   assert.equal(n.recent.length, 6);
 });
+test('Clients › one row per client with RO / PO / IO counts', () => {
+  const d = (id, type, client, status, over = {}) => ({ ...fakeDoc(id, status, '2026-01-15', 118), documentType: type, client: { name: client }, ...over });
+  const docs = [d('1', 'RO', 'Acme', 'Approved'), d('2', 'RO', ' acme ', 'Draft'), d('3', 'PO', 'Acme', 'Sent'), d('4', 'IO', 'Zed Ltd', 'Approved'),
+    d('5', 'RO', 'Acme', 'Approved', { archived: true }), d('6', 'RO', '', 'Draft')];
+  const rows = clientSummaries(docs);
+  assert.deepEqual(rows.map((r) => r.name), ['Acme', 'Not specified', 'Zed Ltd']);
+  const acme = rows[0];
+  assert.deepEqual(acme.counts, { RO: 2, PO: 1, IO: 0 }); assert.equal(acme.total, 3); // the archived one is not counted
+  assert.equal(acme.bookedValue, 236); // only the Approved RO and the Sent PO are booked
+  assert.equal(rows[2].counts.IO, 1);
+});
+test('Clients › the same client name always gives the same key', () => {
+  assert.equal(clientKey('  Acme   Ltd '), clientKey('acme ltd')); assert.equal(clientKey(null), '');
+});
+test('Clients › the sample data produces its four clients', () => {
+  const rows = clientSummaries(buildDemoData().documents);
+  assert.deepEqual(rows.map((r) => r.name), ['Amazon India', 'HDFC Bank', 'Maruti Suzuki', 'Zomato']); assert.ok(rows.every((r) => r.total === 1 && r.counts.RO === 1));
+});
 test('Dashboard › an empty system shows zeros, not errors', () => {
   const n = dashboardNumbers({ publishers: [], campaigns: [], documents: [] }, '2026-10-21');
   assert.equal(n.bookingValue, 0); assert.equal(n.pending.length, 0); assert.equal(n.upcoming.length, 0);

@@ -8,6 +8,8 @@ function CampaignsPage({ query }) {
   const [status, setStatus] = useState(CAMPAIGN_STATUSES.includes(query.status) ? query.status : '');
   const dq = useDeferredValue(q);
   const canEdit = can('campaign.edit');
+  // Clients first; links that ask for a specific campaign status open the campaign list.
+  const [view, setView] = useState(query.view === 'campaigns' || CAMPAIGN_STATUSES.includes(query.status) ? 'campaigns' : 'clients');
 
   const campaigns = data ? data.campaigns : [];
   const rows = useMemo(() => filterCampaigns(campaigns, { q: dq, status }), [campaigns, dq, status]);
@@ -34,10 +36,14 @@ function CampaignsPage({ query }) {
 
   return html`<div className="page">
     <div className="page-actions">
-      <p className="page-sub">Each campaign groups the ROs, POs and IOs for one client engagement.</p>
+      <p className="page-sub">${view === 'clients' ? 'Every client with ROs, POs or IOs. Open one to see all of its documents.' : 'Each campaign groups the ROs, POs and IOs for one client engagement.'}</p>
       ${canEdit && html`<${Link} to="/campaigns/new" className="btn btn-primary"><${Icon} name="plus" size=${15} /> New Campaign</${Link}>`}
     </div>
-    ${data && campaigns.length === 0
+    <${Tabs} label="Campaign views" active=${view} onChange=${setView} tabs=${[
+      { id: 'clients', label: 'Clients', count: data ? clientSummaries(data.documents).length : undefined },
+      { id: 'campaigns', label: 'All campaigns', count: data ? campaigns.length : undefined },
+    ]} />
+    ${view === 'clients' ? html`<${ClientList} data=${data} />` : data && campaigns.length === 0
       ? html`<section className="card"><${EmptyState} icon="campaign" title="No campaigns yet" description="Create a campaign once, then reuse it on every order for that client."
           action=${canEdit && html`<${Link} to="/campaigns/new" className="btn btn-primary"><${Icon} name="plus" size=${15} /> New Campaign</${Link}>`} /></section>`
       : html`<section className="card">

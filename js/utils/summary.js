@@ -23,6 +23,31 @@ function dashboardNumbers({ publishers, campaigns, documents }, today = todayISO
   };
 }
 
+/* "Acme Ltd" and " acme  ltd " are the same client. */
+const clientKey = (name) => String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+/**
+ * One row per client that has at least one RO, PO or IO, with a count of each, worked out from the documents.
+ * Archived documents are left out. Sorted A to Z.
+ */
+function clientSummaries(documents, campaigns = []) {
+  const byKey = new Map();
+  documents.filter((d) => !d.archived).forEach((d) => {
+    const key = clientKey(d.client?.name);
+    const row = byKey.get(key) || { key, name: (d.client?.name || '').trim() || 'Not specified', counts: { RO: 0, PO: 0, IO: 0 }, total: 0, bookedValue: 0, campaignIds: new Set(), updatedAt: '' };
+    row.counts[d.documentType] = (row.counts[d.documentType] || 0) + 1;
+    row.total += 1;
+    if (BOOKED_STATUSES.includes(d.status)) row.bookedValue += toNum(d.commercial?.totalAmount);
+    if (d.campaignId) row.campaignIds.add(d.campaignId);
+    else if (d.campaign?.name) row.campaignIds.add('name:' + d.campaign.name);
+    if ((d.updatedAt || '') > row.updatedAt) row.updatedAt = d.updatedAt;
+    byKey.set(key, row);
+  });
+  return [...byKey.values()]
+    .map((r) => ({ ...r, campaigns: r.campaignIds.size, campaignIds: undefined }))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+}
+
 function addDays(iso, n) {
   const d = parseDate(iso);
   d.setDate(d.getDate() + n);

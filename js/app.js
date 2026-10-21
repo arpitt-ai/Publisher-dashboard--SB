@@ -7,6 +7,7 @@ const ROUTES = [
   { path: '/publishers/:id', page: PublisherProfilePage },
   { path: '/campaigns', page: CampaignsPage },
   { path: '/campaigns/new', page: NewCampaignPage },
+  { path: '/campaigns/client/:key', page: ClientPage },
   { path: '/campaigns/:id/edit', page: EditCampaignPage },
   { path: '/campaigns/:id', page: CampaignDetailPage },
   { path: '/documents', page: DocumentsPage },
