@@ -47,6 +47,22 @@ const PRICING_BY_CODE = Object.fromEntries(PRICING_MODELS.map((m) => [m.code, m]
 
 const GST_SLABS = [0, 5, 12, 18, 28];
 
+/* The payment terms people can choose from. To add or change a choice, edit this list. */
+const PAYMENT_TERMS = [
+  '100% Advance',
+  '50% Advance - 50% post invoice',
+  '100% at Invoice date + 3 days',
+  '100% at Invoice Date + 14 days',
+  '100% at Invoice Date + 30 Days',
+  '100% at Invoice Date + 60 Days',
+  '7.41% Advance',
+];
+/* The list, plus the value already saved on a record if it is not one of the choices (so editing never loses it). */
+const paymentTermOptions = (current) => {
+  const cur = String(current || '').trim();
+  return cur && !PAYMENT_TERMS.includes(cur) ? [...PAYMENT_TERMS, cur] : PAYMENT_TERMS;
+};
+
 /* GST state codes (first two digits of a GSTIN). Used to decide CGST+SGST vs IGST. */
 const GST_STATE_CODES = {
   'Jammu & Kashmir': '01', 'Himachal Pradesh': '02', 'Punjab': '03', 'Chandigarh': '04', 'Uttarakhand': '05', 'Haryana': '06',

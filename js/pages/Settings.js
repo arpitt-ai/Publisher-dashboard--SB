@@ -51,7 +51,7 @@ function SettingsPage() {
     <${FormSection} title="Documents and approval" description="How new documents start out and how they are numbered.">
       <div className="form-grid">
         <${TextField} label="Usual GST rate" required className="col-4" suffix="%" inputMode="decimal" ...${f('defaults.gstPercent')} />
-        <${TextField} label="Usual payment terms" className="col-8" hint="Printed on every document unless you change it on that order." ...${f('defaults.paymentTerms')} />
+        <${SelectField} label="Usual payment terms" className="col-8" options=${paymentTermOptions(s.defaults.paymentTerms)} hint="Chosen by default on new documents. You can change it on each order." ...${f('defaults.paymentTerms')} />
         <${Segmented} label="Does a document need approval before it is sent?" className="col-12" name="workflow.requireApproval" value=${s.workflow.requireApproval}
           hint=${s.workflow.requireApproval ? 'Draft, then Pending Approval, then Approved. An Admin or Approver approves it.' : 'Anyone who can create documents can approve them straight from Draft.'}
           onChange=${(v) => set('workflow.requireApproval', v)} options=${[{ value: true, label: 'Yes, needs approval' }, { value: false, label: 'No, approve directly' }]} />

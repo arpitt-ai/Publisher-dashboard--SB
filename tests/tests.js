@@ -163,6 +163,28 @@ test('Numbering › still safe if the counter is lost', async () => {
   storageService.remove(COLLECTIONS.counters);
   assert.equal((await documentService.create(docInput(p.id))).documentNumber, `RO-${YEAR}-003`);
 });
+test('Issue date › is always the day the document is created, whatever was sent in', async () => {
+  const p = await newPub();
+  const d = await documentService.create(docInput(p.id, { issueDate: '2020-01-01' }));
+  assert.equal(d.issueDate, todayISO());
+  const copy = await documentService.duplicate(d.id);
+  assert.equal(copy.issueDate, todayISO());
+});
+test('Issue date › does not change when the document is edited', async () => {
+  const p = await newPub();
+  const d = await documentService.create(docInput(p.id));
+  const stored = storageService.get(COLLECTIONS.documents, []);
+  stored[0].issueDate = '2026-01-05'; // pretend it was created earlier
+  storageService.set(COLLECTIONS.documents, stored);
+  const edited = await documentService.update(d.id, { ...(await documentService.get(d.id)), issueDate: todayISO(), notes: 'changed' });
+  assert.equal(edited.issueDate, '2026-01-05');
+});
+test('Payment terms › the choices are fixed, and an older custom value is never lost', () => {
+  assert.ok(PAYMENT_TERMS.includes('100% Advance') && PAYMENT_TERMS.includes('100% at Invoice Date + 60 Days'));
+  assert.ok(PAYMENT_TERMS.includes(DEFAULT_SETTINGS.defaults.paymentTerms)); // the built-in default is one of the choices
+  assert.deepEqual(paymentTermOptions('100% Advance'), PAYMENT_TERMS);
+  assert.deepEqual(paymentTermOptions('Net 45 (agreed by phone)').slice(-1), ['Net 45 (agreed by phone)']);
+});
 test('Numbering › a duplicate gets its own new number', async () => {
   const p = await newPub();
   const d = await documentService.create(docInput(p.id)); const copy = await documentService.duplicate(d.id);

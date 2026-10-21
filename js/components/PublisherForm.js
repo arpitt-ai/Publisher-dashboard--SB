@@ -210,7 +210,7 @@ function PublisherForm({ mode, initial, onSaved, onCancel, initialTab = 'basic' 
     <div className="form-grid">
       <${SelectField} label="Usual pricing model" className="col-4" placeholder="Not set" options=${PRICING_MODELS.map((m) => ({ value: m.code, label: `${m.label} · ${m.hint}` }))} ...${field('commercial.pricingModel')} />
       <${TextField} label=${modelChoice ? `Agreed rate · ${modelChoice.rateLabel.replace(/^Rate /, '').toLowerCase()}` : 'Agreed rate'} className="col-4" prefix="₹" inputMode="decimal" transform=${(v) => v.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')} ...${field('commercial.agreedRate')} />
-      <${TextField} label="Payment terms" className="col-4" placeholder="Uses the agency default" ...${field('commercial.paymentTerms')} />
+      <${SelectField} label="Payment terms" className="col-4" placeholder="Use agency default" options=${paymentTermOptions(form.commercial.paymentTerms)} ...${field('commercial.paymentTerms')} />
       <${SelectField} label="GST rate" className="col-4" placeholder="Use agency default" options=${GST_SLABS.map((v) => ({ value: String(v), label: `${v}%` }))} ...${field('commercial.gstPercent')} />
       <${SelectField} label="How GST applies" className="col-8" options=${TAX_TREATMENTS} hint="Automatic compares your state with the publisher’s state. Choose another option only if you are sure." ...${field('commercial.taxTreatment')} />
       <${TextAreaField} label="Rate notes" className="col-12" rows=${3} placeholder="e.g. Homepage banner Rs 40 CPM, article page Rs 25 CPM" ...${field('commercial.rateNotes')} />

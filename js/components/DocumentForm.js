@@ -112,7 +112,9 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
 
   const initialPub = publishers.find((p) => p.id === initial.publisherId);
   const taxCtxFor = (p) => taxContext(p, org);
-  const [doc, setDoc] = useState(() => toFormDoc(initial, taxCtxFor(initialPub)));
+  // Older documents saved no payment terms (the agency default was printed), so show that default as the choice.
+  const startDoc = () => toFormDoc({ ...initial, paymentTerms: initial.paymentTerms || settings.defaults.paymentTerms }, taxCtxFor(initialPub));
+  const [doc, setDoc] = useState(startDoc);
   const [step, setStep] = useState(isEdit ? 3 : initial.publisherId && initial.client?.name ? 1 : 0);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -127,7 +129,7 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
   const [defaultsFrom, setDefaultsFrom] = useState('');
   const docRef = useRef(doc);
   docRef.current = doc;
-  const initialJson = useRef(JSON.stringify(toFormDoc(initial, taxCtxFor(initialPub))));
+  const initialJson = useRef(JSON.stringify(startDoc()));
 
   useEffect(() => { if (!isEdit) documentService.peekNextNumber(initial.documentType).then(setNextNumber); }, []);
 
@@ -412,10 +414,9 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
       </div>
     <//>
 
-    <${FormSection} title="Payment and date">
+    <${FormSection} title="Payment terms">
       <div className="form-grid">
-        <${TextField} label="Payment terms" required className="col-8" ...${field('paymentTerms')} />
-        <${TextField} label="Issue date" required type="date" className="col-4" ...${field('issueDate')} />
+        <${SelectField} label="Payment terms" required className="col-6" placeholder="Choose payment terms" options=${paymentTermOptions(doc.paymentTerms)} ...${field('paymentTerms')} />
       </div>
       <div className="more-block">
         <button type="button" className="link-btn" aria-expanded=${moreTax} onClick=${() => setMoreTax(!moreTax)}><${Icon} name=${moreTax ? 'chevronDown' : 'chevronRight'} size=${13} /> ${moreTax ? 'Hide' : 'Show'} how GST is applied</button>

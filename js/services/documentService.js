@@ -106,6 +106,7 @@ const documentService = (() => {
         client: clean(input.client), campaign: clean(input.campaign), deliverables: cleanNumbers(input.deliverables),
         commercial: finalizeCommercial(input.commercial, snapshot, settings.organization),
         paymentTerms: norm(input.paymentTerms) || settings.defaults.paymentTerms,
+        issueDate: todayISO(), // the date the document is created, never typed in
         status: 'Draft',
         statusHistory: [historyEntry(null, 'Draft', 'Created')],
         relatedIds: [...new Set(input.relatedIds || [])],
@@ -143,6 +144,7 @@ const documentService = (() => {
         numberYear: before.numberYear, numberSeq: before.numberSeq,
         createdAt: before.createdAt, createdBy: before.createdBy,
         relatedIds: before.relatedIds, statusHistory: before.statusHistory,
+        issueDate: before.issueDate, // stays the date the document was created
         publisherSnapshot: snapshot, agencySnapshot: snapshotAgency(settings.organization),
         client: clean(input.client), campaign: clean(input.campaign), deliverables: cleanNumbers(input.deliverables),
         commercial: finalizeCommercial(input.commercial, snapshot, settings.organization),
