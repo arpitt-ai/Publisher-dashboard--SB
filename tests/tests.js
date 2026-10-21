@@ -176,27 +176,22 @@ test('Validation › a draft only needs a client, a campaign and a publisher', (
 test('Validation › the end date cannot be before the start date', () => {
   assert.equal(validateDocument(validForm({ campaign: { name: 'X', startDate: addDays(todayISO(), 10), endDate: addDays(todayISO(), 3) } }), { full: true })['campaign.endDate'], 'The end date cannot be before the start date');
 });
-test('Validation › the start date cannot be in the past, but today is fine', () => {
-  const today = '2026-10-21';
-  const at = (start, end) => validateDocument(validForm({ campaign: { name: 'X', startDate: start, endDate: end } }), { full: true, today });
-  assert.equal(at('2026-10-20', '2026-11-30')['campaign.startDate'], 'The start date cannot be in the past. Choose today or a later date');
-  assert.equal(at('2026-10-21', '2026-11-30')['campaign.startDate'], undefined); // today is allowed
-  assert.equal(at('2026-10-22', '2026-11-30')['campaign.startDate'], undefined);
+test('Validation › the start date can be in the past, today or the future', () => {
+  const at = (start) => validateDocument(validForm({ campaign: { name: 'X', startDate: start, endDate: '2099-12-31' } }), { full: true });
+  ['2020-01-15', todayISO(), '2098-06-01'].forEach((d) => assert.deepEqual(at(d), {}, d));
 });
-test('Validation › the end date cannot be in the past, but today is fine', () => {
-  const today = '2026-10-21';
-  const at = (start, end) => validateDocument(validForm({ campaign: { name: 'X', startDate: start, endDate: end } }), { full: true, today });
-  assert.equal(at('2026-10-21', '2026-10-20')['campaign.endDate'], 'The end date cannot be in the past. Choose today or a later date');
-  assert.equal(at('2026-10-21', '2026-10-21')['campaign.endDate'], undefined); // a one-day flight starting and ending today
-  assert.equal(at('2026-10-25', '2026-10-24')['campaign.endDate'], 'The end date cannot be before the start date');
+test('Validation › the end date can be any date on or after the start date', () => {
+  const at = (start, end) => validateDocument(validForm({ campaign: { name: 'X', startDate: start, endDate: end } }), { full: true });
+  assert.equal(at('2024-03-10', '2024-03-10')['campaign.endDate'], undefined); // a one-day flight
+  assert.equal(at('2024-03-10', '2024-03-11')['campaign.endDate'], undefined); // an entirely past flight is fine
+  assert.equal(at('2024-03-10', '2024-03-09')['campaign.endDate'], 'The end date cannot be before the start date');
 });
-test('Validation › the date rules also apply to a draft, but only to dates that were entered', () => {
-  const today = '2026-10-21';
-  const draft = (cp) => validateDocument(validForm({ campaign: cp }), { today });
-  assert.ok(draft({ name: 'X', startDate: '2026-10-01', endDate: '2026-11-01' })['campaign.startDate']);
+test('Validation › a draft with past dates is fine, and one with end before start is not', () => {
+  const draft = (cp) => validateDocument(validForm({ campaign: cp }));
+  assert.deepEqual(draft({ name: 'X', startDate: '2024-01-01', endDate: '2024-02-01' }), {});
+  assert.ok(draft({ name: 'X', startDate: '2024-02-01', endDate: '2024-01-01' })['campaign.endDate']);
   assert.deepEqual(draft({ name: 'X' }), {}); // no dates yet is fine for a draft
-});
-test('Validation › impossible dates are refused', () => {
+});test('Validation › impossible dates are refused', () => {
   assert.ok(validateDocument(validForm({ issueDate: '2026-02-30' })).issueDate);
   assert.ok(validateDocument(validForm({ campaign: { name: 'X', startDate: '2026-13-01', endDate: '2026-14-01' } }), { full: true })['campaign.startDate']);
 });

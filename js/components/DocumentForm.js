@@ -320,8 +320,8 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
   const deliverablesStep = html`<div className="stack">
     <${FormSection} title="Start and End Date">
       <div className="form-grid">
-        <${TextField} label="Start date" required type="date" className="col-6" min=${todayISO()} hint="Today or a later date" ...${field('campaign.startDate')} />
-        <${TextField} label="End date" required type="date" className="col-6" min=${doc.campaign.startDate && doc.campaign.startDate > todayISO() ? doc.campaign.startDate : todayISO()} hint="Today or a later date, not before the start" ...${field('campaign.endDate', { onBlur: () => { blur('campaign.endDate'); blur('campaign.startDate'); } })} />
+        <${TextField} label="Start date" required type="date" className="col-6" ...${field('campaign.startDate')} />
+        <${TextField} label="End date" required type="date" className="col-6" min=${doc.campaign.startDate || undefined} hint="Cannot be before the start date" ...${field('campaign.endDate', { onBlur: () => { blur('campaign.endDate'); blur('campaign.startDate'); } })} />
       </div>
     <//>
     <${FormSection} title="What will be delivered?" description="Choose how you are buying. We only ask for what matters for that model.">
