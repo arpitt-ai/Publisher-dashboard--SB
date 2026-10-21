@@ -429,6 +429,17 @@ test('History › the GST type is fixed when the document is saved', async () =>
   assert.equal(a.commercial.taxType, 'CGST_SGST'); assert.equal(b.commercial.taxType, 'IGST'); assert.equal(a.commercial.totalAmount, b.commercial.totalAmount);
   assert.ok(totalsAreConsistent(a.commercial) && totalsAreConsistent(b.commercial));
 });
+test('GST › is always 18% of the whole spend, whatever the form sends', async () => {
+  const p = await newPub({ tax: { gstin: OTHER_STATE_GSTIN, pan: '', cin: '', tan: '' } });
+  const d = await documentService.create(docInput(p.id, { commercial: { ...docInput(p.id).commercial, gstPercent: 5, taxTreatment: 'none', discountType: 'percent', discountValue: 10, otherCharges: 1000 } }));
+  assert.equal(d.commercial.gstPercent, 18); assert.equal(d.commercial.taxTreatment, 'auto');
+  const c = computeCommercial(d.commercial);
+  assert.equal(c.gstAmount, round2(c.taxable * 0.18)); // 18% on spend after discount, plus other charges
+  assert.ok(totalsAreConsistent(d.commercial));
+  const edited = await documentService.update(d.id, { ...d, commercial: { ...d.commercial, gstPercent: 12 } });
+  assert.equal(edited.commercial.gstPercent, 18);
+});
+test('GST › a new form starts at 18%', () => { assert.equal(createEmptyDocument('RO', { defaults: { gstPercent: 5 } }).commercial.gstPercent, 18); });
 test('History › the stored total always matches the numbers', async () => {
   const p = await newPub();
   const d = await documentService.create(docInput(p.id, { commercial: { ...docInput(p.id).commercial, rate: 17.35, quantity: 1234567, discountType: 'percent', discountValue: 7.5, otherCharges: 1234.56, taxTreatment: 'inter' } }));

@@ -106,8 +106,6 @@ function PublisherProfilePage({ params, query }) {
         <${KV} label="Usual pricing model">${model ? `${model.label} · ${model.hint}` : ''}<//>
         <${KV} label="Agreed rate">${toNum(pub.commercial?.agreedRate) > 0 ? fmtINR(pub.commercial.agreedRate) : ''}<//>
         <${KV} label="Payment terms">${pub.commercial?.paymentTerms}<//>
-        <${KV} label="GST rate">${pub.commercial?.gstPercent !== '' && pub.commercial?.gstPercent != null ? `${pub.commercial.gstPercent}%` : ''}<//>
-        <${KV} label="How GST applies">${(TAX_TREATMENTS.find((t) => t.value === (pub.commercial?.taxTreatment || 'auto')) || {}).label}<//>
         <${KV} label="Rate notes" wide>${pub.commercial?.rateNotes}<//>
       </dl>
       <p className="hint hint-block">These fill in new orders for this publisher. You can change them on any order.</p>

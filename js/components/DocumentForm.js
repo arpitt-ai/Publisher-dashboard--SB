@@ -35,9 +35,9 @@ function toFormDoc(d, ctx) {
     ...d,
     deliverables: { impressions: str(dl.impressions), clicks: str(dl.clicks), leads: str(dl.leads), other: dl.other || '' },
     commercial: recalcCommercial({
-      ...cm, rate: str(cm.rate), quantity: str(cm.quantity), estimatedSpend: str(cm.estimatedSpend), gstPercent: String(cm.gstPercent ?? 18),
+      ...cm, rate: str(cm.rate), quantity: str(cm.quantity), estimatedSpend: str(cm.estimatedSpend), gstPercent: String(GST_PERCENT),
       discountType: cm.discountType || 'percent', discountValue: str(cm.discountValue), otherCharges: str(cm.otherCharges), otherChargesLabel: cm.otherChargesLabel || '',
-      taxTreatment: cm.taxTreatment || 'auto',
+      taxTreatment: 'auto', // GST is always 18%; only the CGST+SGST / IGST split follows the two states
       // Rate × budget buys the units, so for these buy types the saved subtotal is treated as the budget.
       spendOverride: PRICING_BY_CODE[cm.pricingModel]?.needsQty ? true : !!cm.spendOverride,
     }, ctx),
@@ -123,7 +123,6 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
   const [justAdded, setJustAdded] = useState(null);
   const [moreClient, setMoreClient] = useState(false);
   const [moreTargets, setMoreTargets] = useState(() => ['clicks', 'leads', 'impressions'].some((k) => toNum(initial.deliverables?.[k]) > 0));
-  const [moreTax, setMoreTax] = useState(false);
   const [moreNotes, setMoreNotes] = useState(() => !!(initial.notes || initial.specialInstructions || initial.creativeRequirements || initial.billingInstructions));
   const [showOther, setShowOther] = useState(() => toNum(initial.commercial?.otherCharges) > 0);
   const [defaultsFrom, setDefaultsFrom] = useState('');
@@ -191,8 +190,6 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
     if (untouched) {
       if (PRICING_BY_CODE[pc.pricingModel]) { patch.pricingModel = pc.pricingModel; patch.spendOverride = !!PRICING_BY_CODE[pc.pricingModel].needsQty; applied.push('buy type'); }
       if (norm(pc.agreedRate) && toNum(pc.agreedRate) > 0) { patch.rate = String(pc.agreedRate); applied.push('rate'); }
-      if (norm(pc.gstPercent)) { patch.gstPercent = String(pc.gstPercent); applied.push('GST'); }
-      if (pc.taxTreatment && pc.taxTreatment !== 'auto') { patch.taxTreatment = pc.taxTreatment; applied.push('tax treatment'); }
     }
     setDoc((d) => ({
       ...d, publisherId: p.id,
@@ -373,13 +370,6 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
   </div>`;
 
   /* ── Step 3: commercials ── */
-  const gstOptions = [...new Set([...GST_SLABS, toNum(doc.commercial.gstPercent)])].sort((a, b) => a - b).map((v) => ({ value: String(v), label: `${v}%` }));
-  const agencyState = GST_STATE_BY_CODE[ctx.agencyCode];
-  const partyState = GST_STATE_BY_CODE[ctx.partyCode];
-  const taxExplain = c.taxType === 'CGST_SGST' ? `CGST + SGST: both you and the publisher are in ${agencyState}.`
-    : c.taxType === 'IGST' ? `IGST: you are in ${agencyState} and the publisher is in ${partyState}.`
-    : c.taxType === 'NONE' ? 'No GST is charged on this order.'
-    : 'GST is shown as one line because the publisher’s state is not known. Add their GSTIN or address to split it.';
 
   const commercialsStep = html`<div className="stack">
     <${FormSection} title="Price" description="The buy and its rate come from the Deliverables step. Add any discount here. The total updates as you type.">
@@ -395,7 +385,6 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
             <${Segmented} name="discountType" value=${doc.commercial.discountType} onChange=${(v) => setCommercial({ discountType: v })} options=${[{ value: 'percent', label: '%' }, { value: 'amount', label: '₹' }]} />
           </div>
         </div>
-        <${SelectField} label="GST rate" required className="col-6" options=${gstOptions} ...${field('commercial.gstPercent', { onChange: (v) => setCommercial({ gstPercent: v }) })} />
       </div>
       <div className="more-block">
         <button type="button" className="link-btn" aria-expanded=${showOther} onClick=${() => setShowOther(!showOther)}><${Icon} name=${showOther ? 'chevronDown' : 'chevronRight'} size=${13} /> ${showOther ? 'Hide' : 'Add'} other charges (optional)</button>
@@ -417,14 +406,6 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
     <${FormSection} title="Payment terms">
       <div className="form-grid">
         <${SelectField} label="Payment terms" required className="col-6" placeholder="Choose payment terms" options=${paymentTermOptions(doc.paymentTerms)} ...${field('paymentTerms')} />
-      </div>
-      <div className="more-block">
-        <button type="button" className="link-btn" aria-expanded=${moreTax} onClick=${() => setMoreTax(!moreTax)}><${Icon} name=${moreTax ? 'chevronDown' : 'chevronRight'} size=${13} /> ${moreTax ? 'Hide' : 'Show'} how GST is applied</button>
-        <p className="hint hint-block">${taxExplain}</p>
-        ${moreTax && html`<div className="form-grid" style=${{ marginTop: 12 }}>
-          <${SelectField} label="GST treatment" className="col-8" options=${TAX_TREATMENTS} hint="Leave on Automatic unless Finance has told you otherwise."
-            ...${field('commercial.taxTreatment', { onChange: (v) => setCommercial({ taxTreatment: v }) })} />
-        </div>`}
       </div>
       <div className="more-block">
         <button type="button" className="link-btn" aria-expanded=${moreNotes} onClick=${() => setMoreNotes(!moreNotes)}><${Icon} name=${moreNotes ? 'chevronDown' : 'chevronRight'} size=${13} /> ${moreNotes ? 'Hide' : 'Add'} notes and instructions (optional)</button>

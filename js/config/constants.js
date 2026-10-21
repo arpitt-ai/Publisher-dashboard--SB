@@ -45,6 +45,8 @@ const PRICING_MODELS = [
 ];
 const PRICING_BY_CODE = Object.fromEntries(PRICING_MODELS.map((m) => [m.code, m]));
 
+/* GST is charged at one rate, on the whole spend (after any discount, plus other charges). */
+const GST_PERCENT = 18;
 const GST_SLABS = [0, 5, 12, 18, 28];
 
 /* The payment terms people can choose from. To add or change a choice, edit this list. */

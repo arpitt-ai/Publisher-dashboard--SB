@@ -37,8 +37,6 @@ function CreateDocumentPage({ query }) {
       const cm = { ...start.commercial };
       if (PRICING_BY_CODE[pc.pricingModel]) cm.pricingModel = pc.pricingModel;
       if (norm(pc.agreedRate) && toNum(pc.agreedRate) > 0) cm.rate = String(pc.agreedRate);
-      if (norm(pc.gstPercent)) cm.gstPercent = toNum(pc.gstPercent);
-      if (pc.taxTreatment) cm.taxTreatment = pc.taxTreatment;
       start = { ...start, commercial: cm, paymentTerms: norm(pc.paymentTerms) || start.paymentTerms };
     }
     setInitial(start);

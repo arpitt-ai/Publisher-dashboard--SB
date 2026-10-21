@@ -46,7 +46,7 @@ function suggestCampaignStatus(startDate, endDate, today = todayISO()) {
 }
 
 function createEmptyDocument(type, settings) {
-  const gst = settings?.defaults?.gstPercent ?? 18;
+  const gst = GST_PERCENT;
   return {
     id: null, documentNumber: null, documentType: type,
     publisherId: '', campaignId: '',

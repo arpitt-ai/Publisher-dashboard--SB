@@ -43,15 +43,15 @@ const documentService = (() => {
      The GST type (CGST+SGST / IGST) is worked out once here and kept, so old documents never change by themselves. */
   function finalizeCommercial(cm, pubSnapshot, org) {
     const ctx = taxContext(pubSnapshot, org);
-    const taxType = resolveTaxType(cm.taxTreatment || 'auto', ctx.agencyCode, ctx.partyCode);
-    const c = computeCommercial(cm, { taxType });
+    const taxType = resolveTaxType('auto', ctx.agencyCode, ctx.partyCode);
+    const c = computeCommercial({ ...cm, gstPercent: GST_PERCENT }, { taxType });
     return {
       pricingModel: cm.pricingModel,
       rate: toNum(cm.rate), quantity: toNum(cm.quantity),
       estimatedSpend: c.subtotal, spendOverride: !!cm.spendOverride,
       discountType: cm.discountType === 'amount' ? 'amount' : 'percent', discountValue: toNum(cm.discountValue),
       otherCharges: toNum(cm.otherCharges), otherChargesLabel: norm(cm.otherChargesLabel),
-      gstPercent: toNum(cm.gstPercent), taxTreatment: cm.taxTreatment || 'auto', taxType,
+      gstPercent: GST_PERCENT, taxTreatment: 'auto', taxType,
       totalAmount: c.total,
     };
   }
