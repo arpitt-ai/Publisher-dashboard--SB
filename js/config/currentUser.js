@@ -13,7 +13,7 @@
    ────────────────────────────────────────────────────────────── */
 const CURRENT_USER = Object.freeze({
   id: 'demo-user-001',
-  name: 'Arpit Sharma',
+  name: 'Arpit Pandey',
   email: 'arpit@example.com',
 });
 
