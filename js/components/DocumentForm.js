@@ -13,11 +13,16 @@ const numericText = (v) => v.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
 const wholeText = (v) => v.replace(/\D/g, '');
 
 /* Keep derived money fields in sync with rate / quantity / pricing model. */
-function recalcCommercial(cm, ctx) {
+function recalcCommercial(cm, ctx, { deriveQty = false } = {}) {
   const model = PRICING_BY_CODE[cm.pricingModel];
   const c = computeCommercial({ ...cm, taxType: '' }, ctx);
   const next = { ...cm, taxType: '', totalAmount: c.total };
   if (model && model.auto && !cm.spendOverride) next.estimatedSpend = c.derived ? String(c.subtotal) : '';
+  // For CPM / CPC / CPL / CPA the user gives the rate and the budget; the number of units follows from them.
+  if (deriveQty && model && model.needsQty) {
+    const units = unitsForBudget(model.code, cm.estimatedSpend, cm.rate);
+    next.quantity = units > 0 ? String(units) : '';
+  }
   return next;
 }
 
@@ -33,6 +38,8 @@ function toFormDoc(d, ctx) {
       ...cm, rate: str(cm.rate), quantity: str(cm.quantity), estimatedSpend: str(cm.estimatedSpend), gstPercent: String(cm.gstPercent ?? 18),
       discountType: cm.discountType || 'percent', discountValue: str(cm.discountValue), otherCharges: str(cm.otherCharges), otherChargesLabel: cm.otherChargesLabel || '',
       taxTreatment: cm.taxTreatment || 'auto',
+      // Rate × budget buys the units, so for these buy types the saved subtotal is treated as the budget.
+      spendOverride: PRICING_BY_CODE[cm.pricingModel]?.needsQty ? true : !!cm.spendOverride,
     }, ctx),
   };
 }
@@ -141,11 +148,12 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
   };
   const setMany = (patch) => setDoc((d) => ({ ...d, ...patch }));
   const setCommercial = (patch, nextCtx = ctx) => {
-    setDoc((d) => ({ ...d, commercial: recalcCommercial({ ...d.commercial, ...patch }, nextCtx) }));
+    setDoc((d) => ({ ...d, commercial: recalcCommercial({ ...d.commercial, ...patch }, nextCtx, { deriveQty: 'rate' in patch || 'estimatedSpend' in patch }) }));
     setErrors((e) => {
       const n = { ...e };
       Object.keys(patch).forEach((k) => delete n[`commercial.${k}`]);
       delete n['commercial.estimatedSpend'];
+      delete n['commercial.quantity'];
       delete n['commercial.discountValue'];
       return n;
     });
@@ -175,11 +183,11 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
     const pc = p.commercial || {};
     const nextCtx = taxCtxFor(p);
     const cur = docRef.current.commercial;
-    const untouched = !norm(cur.rate) && !norm(cur.quantity) && !cur.spendOverride;
+    const untouched = !norm(cur.rate) && !norm(cur.estimatedSpend);
     const patch = {};
     const applied = [];
     if (untouched) {
-      if (PRICING_BY_CODE[pc.pricingModel]) { patch.pricingModel = pc.pricingModel; applied.push('pricing model'); }
+      if (PRICING_BY_CODE[pc.pricingModel]) { patch.pricingModel = pc.pricingModel; patch.spendOverride = !!PRICING_BY_CODE[pc.pricingModel].needsQty; applied.push('buy type'); }
       if (norm(pc.agreedRate) && toNum(pc.agreedRate) > 0) { patch.rate = String(pc.agreedRate); applied.push('rate'); }
       if (norm(pc.gstPercent)) { patch.gstPercent = String(pc.gstPercent); applied.push('GST'); }
       if (pc.taxTreatment && pc.taxTreatment !== 'auto') { patch.taxTreatment = pc.taxTreatment; applied.push('tax treatment'); }
@@ -311,10 +319,28 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
 
   /* ── Step 2: deliverables ── */
   const billableKey = model && model.billable;
-  const qtyField = model && model.needsQty
-    ? html`<${TextField} label=${`Number of ${model.qtyLabel.toLowerCase()}`} required className="col-6" inputMode="numeric" transform=${wholeText}
-        hint=${toNum(doc.commercial.quantity) ? fmtNum(doc.commercial.quantity) : `What you are paying for. ${model.hint}.`} autoFocus=${step === 1} ...${field('commercial.quantity', { onChange: (v) => setCommercial({ quantity: v }) })} />`
-    : null;
+  /* Buy type → unit rate (and a budget). The number of impressions / clicks / leads is worked out for you. */
+  const unitName = model ? model.qtyLabel.toLowerCase() : 'units';
+  const budgetProblem = errors['commercial.estimatedSpend']
+    || (norm(doc.commercial.rate) && norm(doc.commercial.estimatedSpend) && errors['commercial.quantity'] ? 'This budget is too small to buy even one unit at this rate' : undefined);
+  const priceFields = !model ? null
+    : model.needsQty ? html`
+        <${TextField} label=${model.rateLabel} required className="col-6" prefix="₹" inputMode="decimal" transform=${numericText}
+          autoFocus=${step === 1} ...${field('commercial.rate', { onChange: (v) => setCommercial({ rate: v }) })} />
+        <${TextField} label="Budget (before tax)" required className="col-6" prefix="₹" inputMode="decimal" transform=${numericText}
+          hint=${toNum(doc.commercial.estimatedSpend) ? fmtINR(doc.commercial.estimatedSpend) : 'The amount to spend on this buy.'}
+          ...${field('commercial.estimatedSpend', { error: budgetProblem, onChange: (v) => setCommercial({ estimatedSpend: v }) })} />
+        <div className="col-12 calc-result" aria-live="polite">
+          <span>Number of ${unitName}</span>
+          <strong>${toNum(doc.commercial.quantity) > 0 ? fmtNum(doc.commercial.quantity) : '—'}</strong>
+          <small>${toNum(doc.commercial.quantity) > 0 ? 'Worked out from the budget and the rate.' : 'Enter the rate and the budget to see this.'}</small>
+        </div>`
+    : model.code === 'Fixed' ? html`
+        <${TextField} label="Agreed amount (before tax)" required className="col-6" prefix="₹" inputMode="decimal" transform=${numericText}
+          hint="One fixed fee for the whole buy." autoFocus=${step === 1} ...${field('commercial.rate', { onChange: (v) => setCommercial({ rate: v }) })} />`
+    : html`
+        <${TextField} label="Amount (before tax)" required className="col-6" prefix="₹" inputMode="decimal" transform=${numericText}
+          hint="The agreed amount for this buy." autoFocus=${step === 1} ...${field('commercial.estimatedSpend', { onChange: (v) => setCommercial({ estimatedSpend: v }) })} />`;
   const otherTargets = [['impressions', 'Impressions'], ['clicks', 'Clicks'], ['leads', 'Leads']].filter(([k]) => billableKey !== k);
 
   const deliverablesStep = html`<div className="stack">
@@ -324,14 +350,14 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
         <${TextField} label="End date" required type="date" className="col-6" min=${doc.campaign.startDate || undefined} hint="Cannot be before the start date" ...${field('campaign.endDate', { onBlur: () => { blur('campaign.endDate'); blur('campaign.startDate'); } })} />
       </div>
     <//>
-    <${FormSection} title="What will be delivered?" description="Choose how you are buying. We only ask for what matters for that model.">
+    <${FormSection} title="Deliverables" description="Choose the buy type, then enter the rate. We work out the rest.">
+      ${defaultsFrom && html`<div className="notice notice-info" style=${{ marginBottom: 14 }}><${Icon} name="info" size=${15} /><div>Filled in from ${defaultsFrom}. Change anything that is different on this order.</div></div>`}
       <div className="form-grid">
-        <${Segmented} label="Pricing model" className="col-12" name="commercial.pricingModel" value=${doc.commercial.pricingModel}
+        <${Segmented} label="Buy type" className="col-12" name="commercial.pricingModel" value=${doc.commercial.pricingModel}
           hint=${model ? model.hint : ''}
-          onChange=${(v) => { if (v !== doc.commercial.pricingModel) setCommercial({ pricingModel: v, rate: '', quantity: '', estimatedSpend: '', spendOverride: false }); }}
+          onChange=${(v) => { if (v !== doc.commercial.pricingModel) setCommercial({ pricingModel: v, rate: '', quantity: '', estimatedSpend: '', spendOverride: !!PRICING_BY_CODE[v].needsQty }); }}
           options=${PRICING_MODELS.map((m) => ({ value: m.code, label: m.label }))} />
-        ${qtyField}
-        ${model && !model.needsQty && html`<div className="col-12 hint">${model.code === 'Fixed' ? 'A fixed fee needs no quantity. You will enter the agreed amount in the next step.' : 'You will enter the amount in the next step.'}</div>`}
+        ${priceFields}
       </div>
       <div className="more-block">
         <button type="button" className="link-btn" aria-expanded=${moreTargets} onClick=${() => setMoreTargets(!moreTargets)}><${Icon} name=${moreTargets ? 'chevronDown' : 'chevronRight'} size=${13} /> ${moreTargets ? 'Hide' : 'Add'} other targets (optional)</button>
@@ -346,8 +372,6 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
 
   /* ── Step 3: commercials ── */
   const gstOptions = [...new Set([...GST_SLABS, toNum(doc.commercial.gstPercent)])].sort((a, b) => a - b).map((v) => ({ value: String(v), label: `${v}%` }));
-  const autoSpend = model && model.auto && !doc.commercial.spendOverride;
-  const manualAmount = model && (!model.auto || doc.commercial.spendOverride);
   const agencyState = GST_STATE_BY_CODE[ctx.agencyCode];
   const partyState = GST_STATE_BY_CODE[ctx.partyCode];
   const taxExplain = c.taxType === 'CGST_SGST' ? `CGST + SGST: both you and the publisher are in ${agencyState}.`
@@ -356,18 +380,12 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
     : 'GST is shown as one line because the publisher’s state is not known. Add their GSTIN or address to split it.';
 
   const commercialsStep = html`<div className="stack">
-    <${FormSection} title="Price" description="Enter the rate. The total updates as you type.">
-      ${defaultsFrom && html`<div className="notice notice-info"><${Icon} name="info" size=${15} /><div>Filled in from ${defaultsFrom}. Change anything that is different on this order.</div></div>`}
-      <div className="form-grid" style=${{ marginTop: defaultsFrom ? 14 : 0 }}>
-        ${model && model.code !== 'Other' && html`<${TextField} label=${model.rateLabel} required className="col-6" prefix="₹" inputMode="decimal" transform=${numericText}
-          hint=${toNum(doc.commercial.rate) ? fmtINR(doc.commercial.rate) : ''} autoFocus=${step === 2} ...${field('commercial.rate', { onChange: (v) => setCommercial({ rate: v }) })} />`}
-        ${manualAmount
-          ? html`<${TextField} label=${model && model.code === 'Other' ? 'Amount' : 'Subtotal (typed in)'} required className="col-6" prefix="₹" inputMode="decimal" transform=${numericText}
-              hint=${model && model.auto ? html`<button type="button" className="link-btn" onClick=${() => setCommercial({ spendOverride: false })}>Calculate it for me instead</button>` : 'Enter the agreed amount before tax.'}
-              ...${field('commercial.estimatedSpend', { onChange: (v) => setCommercial({ estimatedSpend: v }) })} />`
-          : html`<${TextField} label="Subtotal" className="col-6" prefix="₹" readOnly
-              placeholder=${model && model.needsQty ? 'Calculated from rate and quantity' : 'Same as the agreed amount'} value=${c.derived ? fmtNum(c.subtotal) : ''} onChange=${() => {}}
-              hint=${model && model.auto ? html`<button type="button" className="link-btn" onClick=${() => setCommercial({ spendOverride: true })}>Type the amount myself</button>` : ''} />`}
+    <${FormSection} title="Price" description="The buy and its rate come from the Deliverables step. Add any discount here. The total updates as you type.">
+      <div className="price-line">
+        <div><span className="label">Your buy</span><div>${describePricing(doc.commercial) || '—'}${toNum(c.subtotal) > 0 ? html` = <strong>${fmtINR(c.subtotal)}</strong>` : ''}</div></div>
+        <button type="button" className="link-btn" onClick=${() => goTo(1)}>Change in Deliverables</button>
+      </div>
+      <div className="form-grid" style=${{ marginTop: 16 }}>
         <div className="field col-6">
           <span className="label">Discount (optional)</span>
           <div className="inline-pair">

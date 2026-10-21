@@ -663,3 +663,9 @@ img { max-width: 100%; }
   .attn-row { flex-direction: column; align-items: flex-start; }
   .toolbar-row .toolbar-search { min-width: 100%; }
 }
+
+/* Deliverables: the calculated units, and the price recap on the Commercials step */
+.calc-result { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 12px 16px; background: var(--accent-soft); border: 1px solid var(--accent-border); border-radius: var(--radius); color: #312e81; }
+.calc-result strong { font-family: var(--font-display); font-size: 22px; letter-spacing: -.01em; }
+.calc-result small { color: var(--text-3); font-size: 12.5px; margin-left: auto; }
+.price-line { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; padding: 12px 16px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); }

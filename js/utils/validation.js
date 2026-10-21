@@ -129,7 +129,7 @@ function validateDocument(d, { full = false } = {}) {
   if (model && model.needsQty) num('commercial.quantity', cm.quantity, `the number of ${model.qtyLabel.toLowerCase()}`, { required: full, positive: true, max: MAX_QUANTITY });
   else num('commercial.quantity', cm.quantity, 'the quantity', { max: MAX_QUANTITY });
 
-  if (model && !model.auto || cm.spendOverride) num('commercial.estimatedSpend', cm.estimatedSpend, 'the amount', { required: full, positive: true, max: MAX_AMOUNT });
+  if (model && !model.auto || cm.spendOverride) num('commercial.estimatedSpend', cm.estimatedSpend, model && model.needsQty ? 'the budget' : 'the amount', { required: full, positive: true, max: MAX_AMOUNT });
 
   const dv = toNum(cm.discountValue);
   num('commercial.discountValue', cm.discountValue, 'the discount', { max: cm.discountType === 'percent' ? 100 : MAX_AMOUNT });
@@ -152,8 +152,8 @@ function validateDocument(d, { full = false } = {}) {
 /** Which wizard step each error belongs to (used to jump to the right place). */
 const DOCUMENT_STEP_FIELDS = {
   campaign: (k) => k === 'publisherId' || k === 'campaignId' || k.startsWith('client.') || k === 'campaign.name' || k === 'documentType',
-  deliverables: (k) => ['campaign.startDate', 'campaign.endDate', 'commercial.pricingModel', 'commercial.quantity'].includes(k) || k.startsWith('deliverables.'),
-  commercials: (k) => (k.startsWith('commercial.') && k !== 'commercial.pricingModel' && k !== 'commercial.quantity') || k === 'issueDate' || k === 'paymentTerms',
+  deliverables: (k) => ['campaign.startDate', 'campaign.endDate', 'commercial.pricingModel', 'commercial.quantity', 'commercial.rate', 'commercial.estimatedSpend'].includes(k) || k.startsWith('deliverables.'),
+  commercials: (k) => (k.startsWith('commercial.') && !['commercial.pricingModel', 'commercial.quantity', 'commercial.rate', 'commercial.estimatedSpend'].includes(k)) || k === 'issueDate' || k === 'paymentTerms',
 };
 
 function validateCampaign(c) {

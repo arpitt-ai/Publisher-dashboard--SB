@@ -106,6 +106,21 @@ function computeCommercial(cm, ctx = {}) {
   };
 }
 
+/**
+ * How many units a budget buys at a given unit rate (the form uses this: you choose the buy type and enter the
+ * rate and the budget, and the number of impressions / clicks / leads follows).
+ *   CPM: budget ÷ rate × 1,000        CPC / CPL / CPA: budget ÷ rate
+ * Whole units only, rounded down so the amount never goes over the budget. Returns 0 when it cannot be worked out.
+ */
+function unitsForBudget(pricingModel, budget, rate) {
+  const model = PRICING_BY_CODE[pricingModel];
+  const b = toNum(budget);
+  const r = toNum(rate);
+  if (!model || !model.needsQty || b <= 0 || r <= 0) return 0;
+  const units = pricingModel === 'CPM' ? (b / r) * 1000 : b / r;
+  return Math.floor(units + 1e-6); // the tiny nudge stops 2,499,999.9999999 from losing a unit to floating-point noise
+}
+
 /** "10,000,000 impressions × ₹30 per 1,000" — one plain-language line describing how the subtotal was reached. */
 function describePricing(cm, money = fmtINR) {
   const model = PRICING_BY_CODE[cm.pricingModel];

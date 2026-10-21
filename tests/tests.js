@@ -92,6 +92,30 @@ test('Money › GST state codes come from a valid GSTIN or the address state', (
   assert.equal(stateCodeFromGstin(OTHER_STATE_GSTIN), '27'); assert.equal(stateCodeFromGstin('nonsense'), '');
   assert.equal(stateCodeFor({ state: 'Tamil Nadu' }), '33'); assert.equal(stateCodeFor({ gstin: OTHER_STATE_GSTIN, state: 'Tamil Nadu' }), '27');
 });
+test('Money › the budget and the unit rate give the number of impressions, clicks, leads or actions', () => {
+  assert.equal(unitsForBudget('CPM', 375000, 150), 2500000); // ₹3,75,000 at ₹150 per 1,000 impressions
+  assert.equal(unitsForBudget('CPC', 200000, 2.5), 80000);
+  assert.equal(unitsForBudget('CPL', 250000, 500), 500);
+  assert.equal(unitsForBudget('CPA', 1000, 40), 25);
+  assert.equal(unitsForBudget('CPC', 100, 3), 33); // whole units, rounded down so the spend never goes over the budget
+  assert.equal(unitsForBudget('CPM', 0.1, 10), 10);
+});
+test('Money › units are 0 when the rate or budget is missing, or the buy type has no units', () => {
+  assert.equal(unitsForBudget('CPM', '', 150), 0); assert.equal(unitsForBudget('CPM', 1000, ''), 0); assert.equal(unitsForBudget('CPM', 1000, 0), 0);
+  assert.equal(unitsForBudget('Fixed', 1000, 10), 0); assert.equal(unitsForBudget('Other', 1000, 10), 0); assert.equal(unitsForBudget('CPM', -5, 10), 0);
+});
+test('Money › the derived units and the budget agree with the subtotal', () => {
+  [['CPM', 375000, 150], ['CPC', 200000, 2.5], ['CPL', 250000, 500]].forEach(([m, budget, rate]) => {
+    const qty = unitsForBudget(m, budget, rate);
+    const c = computeCommercial(cm({ pricingModel: m, rate, quantity: qty, spendOverride: true, estimatedSpend: budget, gstPercent: 0 }));
+    assert.equal(c.subtotal, budget); assert.equal(computeCommercial(cm({ pricingModel: m, rate, quantity: qty, gstPercent: 0 })).subtotal, budget);
+  });
+});
+test('Validation › with a buy type, the rate and the budget are what is asked for', () => {
+  const e = validateDocument(withCm({ rate: '', quantity: '', estimatedSpend: '', spendOverride: true }), { full: true });
+  assert.equal(e['commercial.rate'], 'Please enter the rate'); assert.equal(e['commercial.estimatedSpend'], 'Please enter the budget');
+  assert.deepEqual(validateDocument(withCm({ rate: '150', quantity: '2500000', estimatedSpend: '375000', spendOverride: true }), { full: true }), {});
+});
 test('Money › describePricing reads naturally', () => {
   assert.equal(describePricing(cm(), (n) => `INR ${n}`), `CPM: ${fmtNum(10000000)} impressions × INR 30 per 1,000`);
   assert.equal(describePricing({ pricingModel: 'Fixed' }), 'Fixed fee');
