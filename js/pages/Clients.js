@@ -72,7 +72,11 @@ function ClientPage({ params }) {
         </div>
       </div>
       ${can('document.create') && html`<div className="btn-row">
-        <${Link} to="/documents/new?type=RO" className="btn btn-primary"><${Icon} name="filePlus" size=${15} /> Create RO</${Link}>
+        <${Link} to=${`/documents/new?type=RO&client=${encodeURIComponent(key)}`} className="btn btn-primary"><${Icon} name="filePlus" size=${15} /> Create RO</${Link}>
+        <${MenuButton} items=${[
+          { label: 'Create PO', icon: 'filePlus', to: `/documents/new?type=PO&client=${encodeURIComponent(key)}` },
+          { label: 'Create IO', icon: 'filePlus', to: `/documents/new?type=IO&client=${encodeURIComponent(key)}` },
+        ]} />
       </div>`}
     </section>
 

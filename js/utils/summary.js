@@ -48,6 +48,30 @@ function clientSummaries(documents, campaigns = []) {
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 
+/**
+ * Every client you have worked with, from campaigns and from documents, for the "choose a client" list.
+ * Includes clients that only have a campaign so far. Legal details come from the most recent record that has them.
+ */
+function clientDirectory(campaigns, documents) {
+  const byKey = new Map();
+  const touch = (name) => {
+    const key = clientKey(name);
+    if (!key) return null;
+    if (!byKey.has(key)) byKey.set(key, { key, name: String(name).trim(), legalEntity: '', address: '', gstin: '', campaigns: 0, documents: 0 });
+    return byKey.get(key);
+  };
+  const fill = (row, d = {}) => { row.legalEntity = row.legalEntity || d.legalEntity || ''; row.address = row.address || d.address || ''; row.gstin = row.gstin || d.gstin || ''; };
+  [...campaigns].sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt))).forEach((c) => {
+    const row = touch(c.client);
+    if (row) { row.campaigns += 1; fill(row, c.clientDetails); }
+  });
+  [...documents].filter((d) => !d.archived).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt))).forEach((d) => {
+    const row = touch(d.client?.name);
+    if (row) { row.documents += 1; fill(row, d.client); }
+  });
+  return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+}
+
 function addDays(iso, n) {
   const d = parseDate(iso);
   d.setDate(d.getDate() + n);

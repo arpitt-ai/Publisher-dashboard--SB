@@ -1,9 +1,9 @@
 /* Create / edit an RO, PO or IO — a short four-step guide:
-     1  Campaign & publisher     2  Deliverables     3  Commercials     4  Review & create
+     1  Client & publisher     2  Deliverables     3  Commercials     4  Review & create
    Everything typed is kept while you move between steps. A live cost summary stays beside the form. */
 
 const DOC_STEPS = [
-  { id: 'campaign', label: 'Campaign & Publisher' },
+  { id: 'campaign', label: 'Client & Publisher' },
   { id: 'deliverables', label: 'Deliverables' },
   { id: 'commercials', label: 'Commercials' },
   { id: 'review', label: 'Review & Create' },
@@ -84,8 +84,9 @@ function DocSummary({ doc, pub, number, typeCode, c }) {
   return html`<aside className="doc-summary card" aria-label="Cost summary">
     <div className="sum-title">${typeCode} summary</div>
     <div className="sum-number mono">${number || 'Number assigned on save'}</div>
-    ${row('Publisher', pub?.publisherName)}
+    ${row('Client', doc.client.name)}
     ${row('Campaign', doc.campaign.name)}
+    ${row('Publisher', pub?.publisherName)}
     ${row('Period', doc.campaign.startDate && doc.campaign.endDate ? `${fmtDate(doc.campaign.startDate)} – ${fmtDate(doc.campaign.endDate)}` : '')}
     <div className="sum-divider"></div>
     ${row('Subtotal', has ? fmtINR(c.subtotal) : '')}
@@ -97,7 +98,7 @@ function DocSummary({ doc, pub, number, typeCode, c }) {
   </aside>`;
 }
 
-function OrderForm({ mode, initial, publishers, campaigns, settings, onDone, onCancel }) {
+function OrderForm({ mode, initial, publishers, campaigns, documents = [], settings, onDone, onCancel }) {
   const isEdit = mode === 'edit';
   const org = settings.organization;
   const requireApproval = settings.workflow.requireApproval;
@@ -133,6 +134,9 @@ function OrderForm({ mode, initial, publishers, campaigns, settings, onDone, onC
   const model = PRICING_BY_CODE[doc.commercial.pricingModel];
   const c = computeCommercial({ ...doc.commercial, taxType: '' }, ctx);
   const chosenCampaign = campaigns.find((x) => x.id === doc.campaignId);
+  const clients = useMemo(() => clientDirectory(campaigns, documents), [campaigns, documents]);
+  const hasClient = !!norm(doc.client.name);
+  const clientCampaigns = useMemo(() => campaigns.filter((x) => clientKey(x.client) === clientKey(doc.client.name)), [campaigns, doc.client.name]);
 
   /* ── updating the form ── */
   const set = (path, value) => {
@@ -157,22 +161,37 @@ function OrderForm({ mode, initial, publishers, campaigns, settings, onDone, onC
   const field = (path, extra = {}) => ({ value: getPath(doc, path), error: errors[path], name: path, onChange: (v) => set(path, v), onBlur: () => blur(path), ...extra });
 
   /* ── campaign and publisher choices ── */
+  /* The client comes first; the campaign is one of that client's campaigns (or a new one). */
+  function chooseClient(c) {
+    setCampaignMode(null);
+    setMany({
+      campaignId: '',
+      client: { name: c.name, legalEntity: c.legalEntity || '', address: c.address || '', gstin: c.gstin || '' },
+      campaign: { ...docRef.current.campaign, name: '', startDate: '', endDate: '' },
+    });
+    setErrors((e) => { const n = { ...e }; delete n['client.name']; return n; });
+  }
+  function clearClient() {
+    setCampaignMode(null);
+    setMany({ campaignId: '', client: { name: '', legalEntity: '', address: '', gstin: '' }, campaign: { ...docRef.current.campaign, name: '', startDate: '', endDate: '' } });
+  }
   function chooseCampaign(camp) {
     setCampaignMode('existing');
+    const cur = docRef.current.client;
     setMany({
       campaignId: camp.id,
-      client: { name: camp.client, legalEntity: camp.clientDetails?.legalEntity || '', address: camp.clientDetails?.address || '', gstin: camp.clientDetails?.gstin || '' },
+      client: { name: cur.name || camp.client, legalEntity: cur.legalEntity || camp.clientDetails?.legalEntity || '', address: cur.address || camp.clientDetails?.address || '', gstin: cur.gstin || camp.clientDetails?.gstin || '' },
       campaign: { ...docRef.current.campaign, name: camp.name, startDate: camp.startDate || docRef.current.campaign.startDate, endDate: camp.endDate || docRef.current.campaign.endDate },
     });
-    setErrors((e) => { const n = { ...e }; delete n['campaign.name']; delete n['client.name']; return n; });
+    setErrors((e) => { const n = { ...e }; delete n['campaign.name']; return n; });
   }
   function startNewCampaign(name = '') {
     setCampaignMode('new');
-    setMany({ campaignId: '', client: { name: '', legalEntity: '', address: '', gstin: '' }, campaign: { ...docRef.current.campaign, name } });
+    setMany({ campaignId: '', campaign: { ...docRef.current.campaign, name } });
   }
   function clearCampaign() {
     setCampaignMode(null);
-    setMany({ campaignId: '', client: { name: '', legalEntity: '', address: '', gstin: '' }, campaign: { ...docRef.current.campaign, name: '', startDate: '', endDate: '' } });
+    setMany({ campaignId: '', campaign: { ...docRef.current.campaign, name: '', startDate: '', endDate: '' } });
   }
 
   /* Choosing a publisher fills in the pricing, GST and payment terms they usually have — unless the user already typed a rate. */
@@ -224,12 +243,11 @@ function OrderForm({ mode, initial, publishers, campaigns, settings, onDone, onC
   /* ── saving ── */
   async function persist({ submit = false, pdf = false }) {
     const errs = validateDocument(docRef.current, { full: submit });
-    if (campaignMode === 'new' && !norm(docRef.current.client.name)) errs['client.name'] = 'Please enter the client or advertiser';
     if (Object.keys(errs).length) {
       setErrors(errs);
       const failing = DOC_STEPS.findIndex((s) => s.id !== 'review' && Object.keys(errs).some((k) => DOCUMENT_STEP_FIELDS[s.id](k)));
       if (failing >= 0) setStep(failing);
-      toast.error(submit ? `Please complete the highlighted fields before submitting this ${type.code}.` : 'To save a draft, choose a publisher and a campaign first.');
+      toast.error(submit ? `Please complete the highlighted fields before submitting this ${type.code}.` : 'To save a draft, choose a client, a campaign and a publisher first.');
       scrollToFirstError();
       return;
     }
@@ -281,17 +299,44 @@ function OrderForm({ mode, initial, publishers, campaigns, settings, onDone, onC
         <div className="autofill-head">
           <div>
             <div className="autofill-name">${chosenCampaign.name} <${StatusBadge} status=${chosenCampaign.status} /></div>
-            <div className="autofill-sub"><${Icon} name="checkCircle" size=${13} /> Client and dates filled in from the campaign</div>
+            <div className="autofill-sub"><${Icon} name="checkCircle" size=${13} /> Dates filled in from the campaign</div>
           </div>
           <div className="autofill-actions">${!isEdit && html`<button type="button" className="btn btn-secondary btn-sm" onClick=${clearCampaign}>Change</button>`}</div>
         </div>
         <dl className="kv-grid">
-          <${KV} label="Client">${doc.client.name}<//>
           <${KV} label="Campaign owner">${chosenCampaign.owner}<//>
           <${KV} label="Campaign dates">${chosenCampaign.startDate || chosenCampaign.endDate ? `${fmtDate(chosenCampaign.startDate)} – ${fmtDate(chosenCampaign.endDate)}` : ''}<//>
         </dl>
+      </div>`
+    : campaignMode === 'new'
+      ? html`<div className="newcamp">
+          <div className="newcamp-head"><strong>New campaign</strong>${!isEdit && html`<button type="button" className="link-btn" onClick=${clearCampaign}>Choose an existing campaign instead</button>`}</div>
+          <div className="form-grid">
+            <${TextField} label="Campaign name" required className="col-12" placeholder="e.g. Diwali Mega Sale 2026" autoFocus ...${field('campaign.name')} />
+            <${TextField} label="Campaign owner" className="col-6" value=${newCampaign.owner} onChange=${(v) => setNewCampaign((n) => ({ ...n, owner: v }))} />
+            <${TextField} label="Budget" className="col-6" prefix="₹" inputMode="decimal" hint="Optional" transform=${numericText} value=${newCampaign.budget} onChange=${(v) => setNewCampaign((n) => ({ ...n, budget: v }))} />
+          </div>
+          <p className="hint hint-block">This campaign is saved under ${doc.client.name} when you save the order, so you can reuse it next time.</p>
+        </div>`
+      : html`<div className=${'field'} data-error=${errors['campaign.name'] ? 'true' : undefined}>
+          <label className="label">Campaign<span className="req"> *</span></label>
+          <${CampaignPicker} campaigns=${clientCampaigns} error=${errors['campaign.name']} autoFocus=${!isEdit && !initial.publisherId} onSelect=${chooseCampaign} onCreate=${startNewCampaign} />
+          ${errors['campaign.name'] && html`<div className="field-error" role="alert"><${Icon} name="alert" size=${12} /><span>${errors['campaign.name']}</span></div>`}
+          <div className="hint">${clientCampaigns.length ? `Pick one of ${doc.client.name}’s campaigns, or create a new one.` : `${doc.client.name} has no campaigns yet. Create the first one.`} The dates fill in for you.</div>
+        </div>`;
+
+  /* Step 1 starts here: who is this order for? */
+  const clientBlock = hasClient
+    ? html`<div className="autofill">
+        <div className="autofill-head">
+          <div>
+            <div className="autofill-name">${doc.client.name}</div>
+            <div className="autofill-sub"><${Icon} name="checkCircle" size=${13} /> ${(() => { const known = clients.find((x) => x.key === clientKey(doc.client.name)); return known ? `${plural(known.documents, 'document')} and ${plural(known.campaigns, 'campaign')} so far` : 'New client, saved when you save this order'; })()}</div>
+          </div>
+          <div className="autofill-actions">${!isEdit && html`<button type="button" className="btn btn-secondary btn-sm" onClick=${clearClient}>Change</button>`}</div>
+        </div>
         <div className="more-block">
-          <button type="button" className="link-btn" aria-expanded=${moreClient} onClick=${() => setMoreClient(!moreClient)}><${Icon} name=${moreClient ? 'chevronDown' : 'chevronRight'} size=${13} /> ${moreClient ? 'Hide' : 'Edit'} client legal details for this order</button>
+          <button type="button" className="link-btn" aria-expanded=${moreClient} onClick=${() => setMoreClient(!moreClient)}><${Icon} name=${moreClient ? 'chevronDown' : 'chevronRight'} size=${13} /> ${moreClient ? 'Hide' : 'Add or edit'} client legal details for this order (optional)</button>
           ${moreClient && html`<div className="form-grid" style=${{ marginTop: 12 }}>
             <${TextField} label="Client legal name" className="col-6" ...${field('client.legalEntity')} />
             <${TextField} label="Client GSTIN" className="col-6" maxLength=${15} transform=${(v) => v.toUpperCase()} ...${field('client.gstin')} />
@@ -299,23 +344,13 @@ function OrderForm({ mode, initial, publishers, campaigns, settings, onDone, onC
           </div>`}
         </div>
       </div>`
-    : campaignMode === 'new'
-      ? html`<div className="newcamp">
-          <div className="newcamp-head"><strong>New campaign</strong>${!isEdit && html`<button type="button" className="link-btn" onClick=${clearCampaign}>Choose an existing campaign instead</button>`}</div>
-          <div className="form-grid">
-            <${TextField} label="Campaign name" required className="col-6" placeholder="e.g. Diwali Mega Sale 2026" autoFocus ...${field('campaign.name')} />
-            <${TextField} label="Client / advertiser" required className="col-6" placeholder="e.g. HDFC Bank" ...${field('client.name')} />
-            <${TextField} label="Campaign owner" className="col-6" value=${newCampaign.owner} onChange=${(v) => setNewCampaign((n) => ({ ...n, owner: v }))} />
-            <${TextField} label="Budget" className="col-6" prefix="₹" inputMode="decimal" hint="Optional" transform=${numericText} value=${newCampaign.budget} onChange=${(v) => setNewCampaign((n) => ({ ...n, budget: v }))} />
-          </div>
-          <p className="hint hint-block">This campaign is created when you save the order, so you can reuse it next time.</p>
-        </div>`
-      : html`<div className=${'field'} data-error=${errors['campaign.name'] ? 'true' : undefined}>
-          <label className="label">Campaign<span className="req"> *</span></label>
-          <${CampaignPicker} campaigns=${campaigns} error=${errors['campaign.name']} autoFocus=${!isEdit && !initial.publisherId} onSelect=${chooseCampaign} onCreate=${startNewCampaign} />
-          ${errors['campaign.name'] && html`<div className="field-error" role="alert"><${Icon} name="alert" size=${12} /><span>${errors['campaign.name']}</span></div>`}
-          <div className="hint">Pick one of your campaigns, or create a new one. The client and dates fill in for you.</div>
-        </div>`;
+    : html`<div className="field" data-error=${errors['client.name'] ? 'true' : undefined}>
+        <label className="label">Client<span className="req"> *</span></label>
+        <${ClientPicker} clients=${clients} error=${errors['client.name']} autoFocus=${!isEdit && !initial.campaignId} onSelect=${chooseClient}
+          onCreate=${(name) => chooseClient({ name, legalEntity: '', address: '', gstin: '' })} />
+        ${errors['client.name'] && html`<div className="field-error" role="alert"><${Icon} name="alert" size=${12} /><span>${errors['client.name']}</span></div>`}
+        <div className="hint">Pick the client this order is for. Not there yet? Type the name and choose “Add a new client”.</div>
+      </div>`;
 
   const publisherBlock = pub
     ? html`<${PublisherAutofillCard} pub=${pub} onChange=${() => set('publisherId', '')} />`
@@ -336,7 +371,8 @@ function OrderForm({ mode, initial, publishers, campaigns, settings, onDone, onC
         </button>`)}
       </div>
     <//>`}
-    <${FormSection} title="Campaign" description="Which campaign is this for?">${campaignBlock}<//>
+    <${FormSection} title="Client" description="Who is this order for?">${clientBlock}<//>
+    ${hasClient && html`<${FormSection} title="Campaign" description=${`Which of ${doc.client.name}’s campaigns?`}>${campaignBlock}<//>`}
     <${FormSection} title="Publisher" description="Who will run it? Their details fill in automatically.">${publisherBlock}<//>
   </div>`;
 

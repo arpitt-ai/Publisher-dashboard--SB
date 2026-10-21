@@ -20,6 +20,10 @@ function CreateDocumentPage({ query }) {
         paymentTerms: src.paymentTerms || base.paymentTerms, notes: src.notes, specialInstructions: src.specialInstructions,
         creativeRequirements: src.creativeRequirements, billingInstructions: src.billingInstructions, relatedIds: [src.id],
       };
+    } else if (!camp && query.client) {
+      // Coming from a client's page: the client is already chosen, the campaign is next.
+      const known = clientDirectory(data.campaigns, data.documents).find((c) => c.key === query.client);
+      if (known) start = { ...start, client: { name: known.name, legalEntity: known.legalEntity, address: known.address, gstin: known.gstin } };
     } else if (camp) {
       start = {
         ...start, campaignId: camp.id,
@@ -50,7 +54,7 @@ function CreateDocumentPage({ query }) {
   }
 
   return html`<div className="page page-form">
-    <${DocumentForm} mode="create" initial=${initial} publishers=${data.publishers} campaigns=${data.campaigns} settings=${data.settings}
+    <${DocumentForm} mode="create" initial=${initial} publishers=${data.publishers} campaigns=${data.campaigns} documents=${data.documents} settings=${data.settings}
       onDone=${(d) => navigate(`/documents/${d.id}`)} onCancel=${() => navigate('/documents')} />
   </div>`;
 }
@@ -80,7 +84,7 @@ function EditDocumentPage({ params }) {
       action=${html`<${Link} to=${`/documents/${frozen.id}`} className="btn btn-secondary"><${Icon} name="arrowLeft" size=${15} /> Back to the document</${Link}>`} /></section></div>`;
   }
   return html`<div className="page page-form">
-    <${DocumentForm} mode="edit" initial=${frozen} publishers=${data.publishers} campaigns=${data.campaigns} settings=${data.settings}
+    <${DocumentForm} mode="edit" initial=${frozen} publishers=${data.publishers} campaigns=${data.campaigns} documents=${data.documents} settings=${data.settings}
       onDone=${(d) => navigate(`/documents/${d.id}`)} onCancel=${() => navigate(`/documents/${frozen.id}`)} />
   </div>`;
 }

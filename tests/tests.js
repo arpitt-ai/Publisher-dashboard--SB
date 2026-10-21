@@ -164,10 +164,11 @@ test('Validation › error messages are plain language', () => {
   assert.equal(e.publisherName, 'Please enter the publisher name'); assert.equal(e.email, 'Please enter an email address');
 });
 test('Validation › a complete order is valid', () => { assert.deepEqual(validateDocument(validForm(), { full: true }), {}); });
-test('Validation › a draft only needs a publisher and a campaign', () => {
-  assert.deepEqual(validateDocument({ publisherId: 'p', campaign: { name: 'X' }, client: {}, commercial: { pricingModel: 'CPM', gstPercent: '18' }, issueDate: '2026-10-21' }), {});
+test('Validation › a draft only needs a client, a campaign and a publisher', () => {
+  assert.deepEqual(validateDocument({ publisherId: 'p', campaign: { name: 'X' }, client: { name: 'Acme' }, commercial: { pricingModel: 'CPM', gstPercent: '18' }, issueDate: '2026-10-21' }), {});
   assert.ok(validateDocument(validForm({ publisherId: '' })).publisherId);
   assert.ok(validateDocument(validForm({ campaign: { name: '' } }))['campaign.name']);
+  assert.equal(validateDocument(validForm({ client: { name: '' } }))['client.name'], 'Please choose the client this order is for');
 });
 test('Validation › the end date cannot be before the start date', () => {
   assert.equal(validateDocument(validForm({ campaign: { name: 'X', startDate: '2026-11-10', endDate: '2026-11-01' } }), { full: true })['campaign.endDate'], 'The end date cannot be before the start date');
@@ -518,6 +519,14 @@ test('Clients › one row per client with RO / PO / IO counts', () => {
   assert.deepEqual(acme.counts, { RO: 2, PO: 1, IO: 0 }); assert.equal(acme.total, 3); // the archived one is not counted
   assert.equal(acme.bookedValue, 236); // only the Approved RO and the Sent PO are booked
   assert.equal(rows[2].counts.IO, 1);
+});
+test('Clients › the "choose a client" list merges campaigns and documents and carries legal details', () => {
+  const campaigns = [{ client: 'Acme', clientDetails: { legalEntity: 'Acme Ltd', gstin: '', address: '' }, updatedAt: '2026-02-01' }, { client: 'Only Campaign Co', clientDetails: {}, updatedAt: '2026-01-01' }];
+  const documents = [{ ...fakeDoc('1', 'Approved', '2026-01-15', 118), client: { name: ' acme ', gstin: '27AAACC1206D1ZM', legalEntity: 'Old Name' } }, { ...fakeDoc('2', 'Draft', '2026-01-15', 118), client: { name: 'Docs Only' } }];
+  const list = clientDirectory(campaigns, documents);
+  assert.deepEqual(list.map((c) => c.name), ['Acme', 'Docs Only', 'Only Campaign Co']);
+  const acme = list[0];
+  assert.equal(acme.campaigns, 1); assert.equal(acme.documents, 1); assert.equal(acme.legalEntity, 'Acme Ltd'); assert.equal(acme.gstin, '27AAACC1206D1ZM');
 });
 test('Clients › the same client name always gives the same key', () => {
   assert.equal(clientKey('  Acme   Ltd '), clientKey('acme ltd')); assert.equal(clientKey(null), '');

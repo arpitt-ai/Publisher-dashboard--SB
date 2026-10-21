@@ -98,8 +98,8 @@ function validateDocument(d, { full = false } = {}) {
 
   const cp = d.campaign || {};
   const c = d.client || {};
-  if (!norm(cp.name)) e['campaign.name'] = 'Please choose a campaign or enter a name for a new one';
-  if (full && !norm(c.name)) e['client.name'] = 'Please enter the client or advertiser';
+  if (!norm(c.name)) e['client.name'] = 'Please choose the client this order is for';
+  if (!norm(cp.name)) e['campaign.name'] = 'Please choose one of the client’s campaigns or create a new one';
   if (norm(c.gstin) && !RX.gstin.test(upper(c.gstin))) e['client.gstin'] = 'This client GSTIN does not look right. It has 15 characters';
 
   if (full || cp.startDate || cp.endDate) {
