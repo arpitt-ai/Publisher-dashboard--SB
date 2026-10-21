@@ -318,12 +318,10 @@ function OrderForm({ mode, initial, publishers, campaigns, documents = [], setti
   const otherTargets = [['impressions', 'Impressions'], ['clicks', 'Clicks'], ['leads', 'Leads']].filter(([k]) => billableKey !== k);
 
   const deliverablesStep = html`<div className="stack">
-    <${FormSection} title="Dates and placement" description="When does it run and where?">
+    <${FormSection} title="Start and End Date">
       <div className="form-grid">
         <${TextField} label="Start date" required type="date" className="col-6" ...${field('campaign.startDate')} />
         <${TextField} label="End date" required type="date" className="col-6" ...${field('campaign.endDate', { onBlur: () => { blur('campaign.endDate'); blur('campaign.startDate'); } })} />
-        <${SelectField} label="Platform / channel" className="col-6" placeholder="Select platform" options=${PLATFORMS} ...${field('campaign.platform')} />
-        <${SelectField} label="Ad format" className="col-6" placeholder="Select format" options=${AD_FORMATS} ...${field('campaign.adFormat')} />
       </div>
     <//>
     <${FormSection} title="What will be delivered?" description="Choose how you are buying. We only ask for what matters for that model.">
