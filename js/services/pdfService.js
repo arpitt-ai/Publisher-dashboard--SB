@@ -182,7 +182,7 @@ const pdfService = (() => {
 
     // Table 1 — what is being booked
     const details = [
-      ['Campaign', T(`${cp.name || '-'}${client.name ? '  (for ' + client.name + ')' : ''}`)],
+      [cp.name ? 'Campaign' : 'Client', T(cp.name ? `${cp.name}${client.name ? '  (for ' + client.name + ')' : ''}` : (client.name || '-'))],
       ['Campaign period', cp.startDate || cp.endDate ? `${fmtDate(cp.startDate)} to ${fmtDate(cp.endDate)}` : '-'],
     ];
     const placement = [cp.platform, cp.adFormat].filter(Boolean).join(' / ');

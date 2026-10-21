@@ -10,7 +10,7 @@ function AttentionRow({ doc, hint }) {
   return html`<li className="attn-row">
     <div className="attn-main">
       <${Link} to=${`/documents/${doc.id}`} className="doc-num">${doc.documentNumber}</${Link}>
-      <span className="attn-text"><strong>${doc.publisherSnapshot?.publisherName || 'Unknown publisher'}</strong> · ${doc.campaign?.name || 'No campaign'}</span>
+      <span className="attn-text"><strong>${doc.publisherSnapshot?.publisherName || 'Unknown publisher'}</strong> · ${doc.client?.name || 'No client'}</span>
     </div>
     <div className="attn-side"><span className="nowrap">${fmtINR(doc.commercial?.totalAmount)}</span><${Link} to=${`/documents/${doc.id}`} className="btn btn-secondary btn-sm">${hint}</${Link}></div>
   </li>`;
@@ -96,7 +96,7 @@ function documentColumns({ showPublisher = true, showCampaign = true, updated = 
   return [
     { key: 'num', header: 'Document Number', width: '150px', render: (d) => html`<${Link} to=${`/documents/${d.id}`} className="doc-num">${d.documentNumber}</${Link}>` },
     showPublisher && { key: 'pub', header: 'Publisher', render: (d) => html`<span className="clamp" title=${d.publisherSnapshot?.publisherName}>${d.publisherSnapshot?.publisherName || '—'}</span>` },
-    showCampaign && { key: 'campaign', header: 'Campaign', render: (d) => html`<span className="clamp" title=${d.campaign?.name}>${d.campaign?.name || '—'}</span>` },
+    showCampaign && { key: 'client', header: 'Client', render: (d) => html`<span className="clamp" title=${d.client?.name}>${d.client?.name || '—'}</span>` },
     { key: 'amount', header: 'Amount', align: 'right', render: (d) => html`<span className="nowrap">${fmtINR(d.commercial?.totalAmount)}</span>` },
     { key: 'status', header: 'Status', render: (d) => html`<${StatusBadge} status=${d.status} />` },
     { key: 'date', header: updated ? 'Updated' : 'Date', render: (d) => html`<span className="nowrap">${fmtDate(updated ? d.updatedAt : d.issueDate)}</span>` },

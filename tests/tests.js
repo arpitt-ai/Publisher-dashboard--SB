@@ -167,7 +167,7 @@ test('Validation › a complete order is valid', () => { assert.deepEqual(valida
 test('Validation › a draft only needs a client, a campaign and a publisher', () => {
   assert.deepEqual(validateDocument({ publisherId: 'p', campaign: { name: 'X' }, client: { name: 'Acme' }, commercial: { pricingModel: 'CPM', gstPercent: '18' }, issueDate: '2026-10-21' }), {});
   assert.ok(validateDocument(validForm({ publisherId: '' })).publisherId);
-  assert.ok(validateDocument(validForm({ campaign: { name: '' } }))['campaign.name']);
+  assert.deepEqual(validateDocument(validForm({ campaign: { name: '', startDate: '2026-11-01', endDate: '2026-11-30' } }), { full: true }), {}); // a campaign name is no longer needed
   assert.equal(validateDocument(validForm({ client: { name: '' } }))['client.name'], 'Please choose the client this order is for');
 });
 test('Validation › the end date cannot be before the start date', () => {
@@ -372,6 +372,14 @@ test('History › the stored total always matches the numbers', async () => {
 });
 
 /* ═══ Related documents ═══ */
+test('Related › documents for the same client find each other, with or without a campaign', async () => {
+  const p = await newPub();
+  const a = await documentService.create(docInput(p.id, { client: { name: 'Acme', legalEntity: '', address: '', gstin: '' }, campaign: { name: '', startDate: '', endDate: '', type: '', platform: '', adFormat: '' } }));
+  const b = await documentService.create(docInput(p.id, { documentType: 'PO', client: { name: ' ACME ', legalEntity: '', address: '', gstin: '' }, campaign: { name: '', startDate: '', endDate: '', type: '', platform: '', adFormat: '' } }));
+  const other = await documentService.create(docInput(p.id, { client: { name: 'Someone Else', legalEntity: '', address: '', gstin: '' } }));
+  const related = relatedDocuments(a, await documentService.list());
+  assert.deepEqual(related.map((d) => d.id), [b.id]); assert.ok(!related.some((d) => d.id === other.id));
+});
 test('Related › a duplicate is linked both ways, and same-campaign documents find each other', async () => {
   const p = await newPub(); const c = await campaignService.create({ name: 'Diwali', client: 'Acme' });
   const a = await documentService.create(docInput(p.id, { campaignId: c.id }));

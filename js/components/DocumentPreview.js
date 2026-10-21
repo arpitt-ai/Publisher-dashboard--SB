@@ -61,7 +61,7 @@ function DocumentPreview({ doc, publisher, org, paymentTerms, createdBy, created
     <section className="paper-block">
       <h4>Campaign</h4>
       <div className="paper-grid">
-        <div><span className="paper-label">Campaign</span><strong>${empty(cp.name)}</strong></div>
+        ${cp.name && html`<div><span className="paper-label">Campaign</span><strong>${cp.name}</strong></div>`}
         <div><span className="paper-label">Period</span>${cp.startDate || cp.endDate ? `${fmtDate(cp.startDate)} – ${fmtDate(cp.endDate)}` : empty('')}</div>
         <div><span className="paper-label">Platform</span>${empty(cp.platform)}</div>
         <div><span className="paper-label">Ad format</span>${empty(cp.adFormat)}</div>

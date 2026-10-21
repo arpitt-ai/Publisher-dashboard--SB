@@ -95,7 +95,7 @@ function ClientPicker({ clients, onSelect, onCreate, error, autoFocus = false })
         : matches.map((c, i) => html`<li key=${c.key} role="option" aria-selected=${i === hi} className=${'picker-item' + (i === hi ? ' is-hi' : '')}
             onMouseEnter=${() => setHi(i)} onMouseDown=${(e) => { e.preventDefault(); pick(c); }}>
             <div className="picker-main"><span className="picker-name">${c.name}</span></div>
-            <div className="picker-sub">${plural(c.campaigns, 'campaign')} · ${plural(c.documents, 'document')}</div>
+            <div className="picker-sub">${c.documents ? plural(c.documents, 'document') : 'No documents yet'}</div>
           </li>`)}
       ${canCreate && html`<li role="option" className="picker-item picker-create" onMouseDown=${(e) => { e.preventDefault(); create(); }}>
         <span className="picker-name"><${Icon} name="plus" size=${14} /> Add a new client “${q.trim()}”</span>

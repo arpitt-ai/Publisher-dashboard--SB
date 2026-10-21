@@ -85,7 +85,7 @@ function DocumentDetailPage({ params, query }) {
           <header className="card-header"><h2 className="card-title">Related documents</h2><span className="tag">${related.length}</span></header>
           <div className="card-body">
             ${related.length === 0
-              ? html`<p className="muted">No other documents for this campaign yet.</p>`
+              ? html`<p className="muted">No other documents for this client yet.</p>`
               : html`<ul className="related-list">${related.map((r) => html`<li key=${r.id}>
                   <${Link} to=${`/documents/${r.id}`} className="related-item">
                     <span className="doc-num">${r.documentNumber}</span>
@@ -99,11 +99,12 @@ function DocumentDetailPage({ params, query }) {
         </section>
 
         <section className="card">
-          <header className="card-header"><h2 className="card-title">Campaign and publisher</h2></header>
+          <header className="card-header"><h2 className="card-title">Client and publisher</h2></header>
           <div className="card-body">
+            <div className="side-line"><span className="label">Client</span>${doc.client?.name ? html`<${Link} to=${`/campaigns/client/${encodeURIComponent(clientKey(doc.client.name))}`} className="text-link">${doc.client.name}</${Link}>` : '—'}</div>
             ${campaign
               ? html`<div className="side-line"><span className="label">Campaign</span><${Link} to=${`/campaigns/${campaign.id}`} className="text-link">${campaign.name}</${Link}><div className="muted small">${campaign.client}</div></div>`
-              : html`<div className="side-line"><span className="label">Campaign</span>${doc.campaign?.name || '—'}</div>`}
+              : (doc.campaign?.name ? html`<div className="side-line"><span className="label">Campaign</span>${doc.campaign.name}</div>` : '')}
             <div className="side-line"><span className="label">Publisher ${livePub ? html`<${StatusBadge} status=${livePub.status} />` : ''}</span>
               ${livePub ? html`<${Link} to=${`/publishers/${livePub.id}`} className="text-link">${snapshot?.publisherName}</${Link}>` : snapshot?.publisherName}
               <div className="muted small">${snapshot?.legalEntityName}</div></div>

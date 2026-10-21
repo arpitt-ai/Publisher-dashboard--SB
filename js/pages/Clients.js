@@ -11,8 +11,7 @@ function ClientList({ data }) {
 
   const columns = [
     { key: 'client', header: 'Client', sticky: 'left', render: (c) => html`<${Link} to=${`/campaigns/client/${encodeURIComponent(c.key)}`} className="row-title">${c.name}</${Link}>` },
-    { key: 'campaigns', header: 'Campaigns', align: 'right', render: (c) => c.campaigns },
-    { key: 'ro', header: 'ROs', align: 'right', render: (c) => count(c.counts.RO) },
+        { key: 'ro', header: 'ROs', align: 'right', render: (c) => count(c.counts.RO) },
     { key: 'po', header: 'POs', align: 'right', render: (c) => count(c.counts.PO) },
     { key: 'io', header: 'IOs', align: 'right', render: (c) => count(c.counts.IO) },
     { key: 'total', header: 'Total documents', align: 'right', render: (c) => html`<strong>${c.total}</strong>` },
@@ -68,7 +67,7 @@ function ClientPage({ params }) {
         <span className="profile-mark">${initials(name)}</span>
         <div>
           <div className="profile-name"><h2>${name}</h2></div>
-          <div className="profile-legal">${plural(summary.total, 'document')} across ${plural(summary.campaigns, 'campaign')}</div>
+          <div className="profile-legal">${plural(summary.total, 'document')}</div>
         </div>
       </div>
       ${can('document.create') && html`<div className="btn-row">
@@ -91,7 +90,7 @@ function ClientPage({ params }) {
       <div className="tabbar"><${Tabs} label="Document types" tabs=${tabs} active=${type} onChange=${setType} className="tabs-flush" /></div>
       ${shown.length === 0
         ? html`<${EmptyState} compact icon="file" title=${`No ${type}s for ${name} yet`} />`
-        : html`<${DataTable} rows=${shown} columns=${[{ key: 'type', header: 'Type', width: '70px', render: (d) => html`<${Tag}>${d.documentType}</${Tag}>` }, ...documentColumns()]} onRowClick=${(d) => navigate(`/documents/${d.id}`)} rowClass=${(d) => (d.status === 'Cancelled' ? 'is-muted' : '')} />`}
+        : html`<${DataTable} rows=${shown} columns=${[{ key: 'type', header: 'Type', width: '70px', render: (d) => html`<${Tag}>${d.documentType}</${Tag}>` }, ...documentColumns({ showCampaign: false })]} onRowClick=${(d) => navigate(`/documents/${d.id}`)} rowClass=${(d) => (d.status === 'Cancelled' ? 'is-muted' : '')} />`}
     </section>
 
     ${campaigns.length > 0 && html`<section className="card">

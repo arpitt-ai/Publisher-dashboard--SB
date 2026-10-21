@@ -34,7 +34,7 @@ function DocumentsPage({ query }) {
   const columns = [
     { key: 'num', header: 'Document Number', sticky: 'left', width: '150px', render: (d) => html`<${Link} to=${`/documents/${d.id}`} className="doc-num">${d.documentNumber}</${Link}>${d.archived ? html` <${Tag}>Archived</${Tag}>` : ''}` },
     { key: 'type', header: 'Type', width: '60px', render: (d) => html`<${Tag}>${d.documentType}</${Tag}>` },
-    { key: 'campaign', header: 'Campaign', render: (d) => html`<span className="clamp" title=${d.campaign?.name}>${d.campaign?.name || '—'}</span>` },
+    { key: 'client', header: 'Client', render: (d) => html`<span className="clamp" title=${d.client?.name}>${d.client?.name || '—'}</span>` },
     { key: 'pub', header: 'Publisher', render: (d) => html`<span className="clamp" title=${d.publisherSnapshot?.publisherName}>${d.publisherSnapshot?.publisherName || '—'}</span>` },
     { key: 'date', header: 'Date', render: (d) => html`<span className="nowrap">${fmtDate(d.issueDate)}</span>` },
     { key: 'amount', header: 'Amount', align: 'right', render: (d) => html`<span className="nowrap">${fmtINR(d.commercial?.totalAmount)}</span>` },

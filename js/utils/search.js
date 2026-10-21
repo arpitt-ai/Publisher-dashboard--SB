@@ -31,7 +31,7 @@ function filterPublishers(list, { q = '', status = '', sort = 'name' } = {}) {
 function relatedDocuments(doc, all) {
   const linked = new Set(doc.relatedIds || []);
   return all
-    .filter((d) => d.id !== doc.id && !d.archived && (linked.has(d.id) || (doc.campaignId && d.campaignId === doc.campaignId)))
+    .filter((d) => d.id !== doc.id && !d.archived && (linked.has(d.id) || (doc.campaignId && d.campaignId === doc.campaignId) || (clientKey(doc.client?.name) && clientKey(d.client?.name) === clientKey(doc.client?.name))))
     .sort((a, b) => a.documentType.localeCompare(b.documentType) || String(a.documentNumber).localeCompare(String(b.documentNumber)));
 }
 
